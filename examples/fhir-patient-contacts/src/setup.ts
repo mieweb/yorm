@@ -14,8 +14,9 @@ import type { SqliteAdapter } from "@yorm/drizzle";
 import { fhirResource } from "@yorm/fhir";
 import type { Patient } from "@yorm/fhir";
 import { createHonoYorm } from "@yorm/hono";
+import type { HonoYormOptions } from "@yorm/hono";
 import { createYorm, memoryRuntime } from "@yorm/yjs";
-import type { Yorm } from "@yorm/yjs";
+import type { AnyMapping, Yorm } from "@yorm/yjs";
 
 import { contactToPatient } from "./importContacts.js";
 import { patientContactsMapping } from "./mapping.js";
@@ -33,12 +34,21 @@ export interface PocServer {
   close(): void;
 }
 
+export interface PocServerOptions {
+  /** SQLite file path (in-memory when absent). */
+  file?: string;
+  /** Extra mappings registered alongside `fhir.Patient@1` (e.g. the M7 proposal tracking mapping). */
+  mappings?: AnyMapping[];
+  /** Extra plugin options (e.g. `onAuthorizeWrite`); the WebSocket upgrader is always wired. */
+  honoOptions?: Omit<HonoYormOptions, "upgradeWebSocket">;
+}
+
 /**
  * Creates the full POC stack on SQLite (in-memory by default, or a file via
  * `options.file`): migrates the `yorm_*` system tables, creates the contact
  * tables, and mounts `createHonoYorm` at `/yorm` with y-protocols WebSockets.
  */
-export function createPocServer(options: { file?: string } = {}): PocServer {
+export function createPocServer(options: PocServerOptions = {}): PocServer {
   const adapter = createSqliteAdapter(options.file !== undefined ? { file: options.file } : {});
   adapter.migrate();
   for (const ddl of CONTACTS_DDL) {
@@ -48,12 +58,12 @@ export function createPocServer(options: { file?: string } = {}): PocServer {
     runtime: memoryRuntime(),
     documents: adapter.documents,
     projections: adapter.projections,
-    mappings: [patientContactsMapping],
+    mappings: [patientContactsMapping, ...(options.mappings ?? [])],
     codecs: { Patient: fhirResource<Patient>("Patient") },
   });
   const app = new Hono();
   const { upgradeWebSocket, injectWebSocket } = createNodeWebSocket({ app });
-  app.route("/yorm", createHonoYorm(yorm, { upgradeWebSocket }));
+  app.route("/yorm", createHonoYorm(yorm, { ...options.honoOptions, upgradeWebSocket }));
   return {
     app,
     yorm,

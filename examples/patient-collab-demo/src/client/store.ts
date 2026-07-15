@@ -1,31 +1,43 @@
 /**
- * The Yjs ⇄ Zustand bridge (PLAN.md 6a).
+ * The Yjs ⇄ Zustand bridge (PLAN.md 6a + 7c).
  *
  * The Y.Doc is the single source of truth: the store's `patient` slice is
  * just `doc.getMap("resource").toJSON()`, refreshed on every doc update, and
  * `setField` mutates Y types inside `doc.transact` (no duplicated state
  * shape). Awareness feeds the presence slice; the connection status comes
- * from the y-websocket provider; the projection rows / pending flag are
- * polled from the demo server.
+ * from the y-websocket provider; the projection rows / pending flag and the
+ * proposals list are polled from the demo server.
+ *
+ * Roles (M7c): in `proposer` mode `setField` never writes Y — it debounces
+ * the value into `POST /proposals` (a semantic change intent on the
+ * `yorm:proposals` subtree). Switching roles reconnects the WebSocket
+ * provider with `?role=`, which the server's proposer guard enforces.
  */
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 import { create } from "zustand";
 import type { Patient } from "@yorm/fhir";
+import type { ChangeIntent } from "@yorm/yjs";
 
 import {
   DOC_ID,
   DOC_TYPE,
+  acceptProposal,
+  acceptProposalAnyway,
   fetchProjectionPending,
+  fetchProposals,
   fetchRows,
   postBlurSignal,
   postFlush,
   postPolicy,
+  postProposal,
+  rejectProposal,
+  setApiRole,
 } from "./api";
-import type { PolicyKind, RowsSnapshot } from "./api";
+import type { AcceptResult, DemoRole, PolicyKind, RowsSnapshot } from "./api";
 import { t } from "./i18n";
 import { getFieldSpec } from "./patientFields";
-import type { PatientFieldId } from "./patientFields";
+import type { PatientFieldId, PatientFieldSpec } from "./patientFields";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
@@ -45,17 +57,28 @@ export interface CollabState {
   policy: PolicyKind;
   pendingProjection: boolean;
   rows: RowsSnapshot | null;
-  /** Latest aria-live announcement (presence / row updates). */
+  /** Demo role (M7c): editors write Y directly, proposers only suggest. */
+  role: DemoRole;
+  /** The local presence name — used as the proposal actor / resolver. */
+  selfName: string;
+  /** All change intents of the document, polled with the rows. */
+  proposals: ChangeIntent[];
+  /** Latest aria-live announcement (presence / row / proposal updates). */
   announcement: string;
   setField(fieldId: PatientFieldId, value: string): void;
   setFocusedField(fieldId: string | null): void;
   selectPolicy(kind: PolicyKind): void;
   save(): void;
   signalBlur(): void;
+  setRole(role: DemoRole): void;
+  /** Editor review action; a stale accept resolves to `{ conflict: true }`. */
+  resolveProposal(id: string, action: "accept" | "accept-anyway" | "reject"): Promise<AcceptResult>;
 }
 
 const PRESENCE_COLORS = ["#2563eb", "#db2777", "#16a34a", "#d97706", "#7c3aed", "#0891b2"];
 const POLL_MS = 750;
+/** Proposer keystrokes are coalesced into one POST per field. */
+const PROPOSE_DEBOUNCE_MS = 400;
 
 const doc = new Y.Doc();
 const root = doc.getMap("resource");
@@ -68,11 +91,18 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   policy: "every-change",
   pendingProjection: false,
   rows: null,
+  role: "editor",
+  selfName: "",
+  proposals: [],
   announcement: "",
 
   setField(fieldId, value) {
     const spec = getFieldSpec(fieldId);
     if (!spec) {
+      return;
+    }
+    if (get().role === "proposer") {
+      queueProposal(spec, value);
       return;
     }
     doc.transact(() => {
@@ -98,7 +128,103 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       void postBlurSignal().then(refreshProjection);
     }
   },
+
+  setRole(role) {
+    if (get().role === role) {
+      return;
+    }
+    set({ role });
+    setApiRole(role);
+    // Reconnect so the server sees the new `?role=` (the proposer guard is
+    // enforced per WebSocket connection).
+    connectProvider(role);
+  },
+
+  async resolveProposal(id, action) {
+    const resolvedBy = get().selfName;
+    let result: AcceptResult = { conflict: false };
+    if (action === "accept") {
+      result = await acceptProposal(id, resolvedBy);
+    } else if (action === "accept-anyway") {
+      await acceptProposalAnyway(id, resolvedBy);
+    } else {
+      await rejectProposal(id, resolvedBy);
+    }
+    await Promise.all([refreshProposals(), refreshProjection()]);
+    return result;
+  },
 }));
+
+/** Debounced proposer edits, one pending POST per field. */
+const proposeTimers = new Map<PatientFieldId, ReturnType<typeof setTimeout>>();
+
+function queueProposal(spec: PatientFieldSpec, value: string): void {
+  const existing = proposeTimers.get(spec.id);
+  if (existing !== undefined) {
+    clearTimeout(existing);
+  }
+  proposeTimers.set(
+    spec.id,
+    setTimeout(() => {
+      proposeTimers.delete(spec.id);
+      void submitProposal(spec, value);
+    }, PROPOSE_DEBOUNCE_MS),
+  );
+}
+
+async function submitProposal(spec: PatientFieldSpec, value: string): Promise<void> {
+  const { patient, selfName } = useCollabStore.getState();
+  if (!patient) {
+    return;
+  }
+  const path = spec.proposalPath(patient);
+  if (!path) {
+    return; // the demo only proposes over existing elements
+  }
+  try {
+    await postProposal({
+      path,
+      op: "set",
+      proposedValue: spec.toProposedValue(value),
+      actor: selfName,
+    });
+    await refreshProposals();
+  } catch {
+    // transient — the poll loop keeps the proposals slice fresh
+  }
+}
+
+let proposalsLoaded = false;
+
+/** Updates the proposals slice, announcing open-count transitions. */
+function applyProposals(proposals: ChangeIntent[]): void {
+  const state = useCollabStore.getState();
+  if (JSON.stringify(proposals) === JSON.stringify(state.proposals)) {
+    proposalsLoaded = true;
+    return;
+  }
+  const openCount = (list: ChangeIntent[]): number =>
+    list.filter((intent) => intent.status === "proposed").length;
+  const before = openCount(state.proposals);
+  const now = openCount(proposals);
+  useCollabStore.setState({
+    proposals,
+    ...(proposalsLoaded && now > before
+      ? { announcement: t("announce.proposalCreated") }
+      : proposalsLoaded && now < before
+        ? { announcement: t("announce.proposalResolved") }
+        : {}),
+  });
+  proposalsLoaded = true;
+}
+
+async function refreshProposals(): Promise<void> {
+  try {
+    applyProposals(await fetchProposals());
+  } catch {
+    // transient — the poll loop retries
+  }
+}
 
 /** Re-polls rows + pending flag right after a policy/flush/blur action. */
 async function refreshProjection(): Promise<void> {
@@ -141,30 +267,28 @@ function readPeers(awareness: WebsocketProvider["awareness"]): Peer[] {
 
 let started = false;
 
-/** Connects the Y.Doc, awareness, and poll loop. Idempotent (HMR-safe). */
-export function startCollab(): void {
-  if (started) {
-    return;
-  }
-  started = true;
+/**
+ * (Re)connects the WebSocket provider with the given role. The Y.Doc and its
+ * listeners survive reconnects; awareness state and provider listeners are
+ * re-established because each provider owns its awareness instance.
+ */
+function connectProvider(role: DemoRole): void {
+  provider?.destroy();
 
   const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
   provider = new WebsocketProvider(
     `${wsProtocol}//${location.host}/yorm/ws`,
     `${DOC_TYPE}/${DOC_ID}`,
     doc,
+    { params: { role } },
   );
 
   provider.awareness.setLocalState({
     user: {
-      name: t("presence.userName", { n: doc.clientID % 1000 }),
+      name: useCollabStore.getState().selfName,
       color: PRESENCE_COLORS[doc.clientID % PRESENCE_COLORS.length],
     },
     focusedField: null,
-  });
-
-  doc.on("update", () => {
-    useCollabStore.setState({ patient: root.toJSON() as Patient });
   });
 
   provider.on("status", (event: { status: string }) => {
@@ -187,11 +311,40 @@ export function startCollab(): void {
   });
   // The local state was set before the listener attached — seed the slice.
   useCollabStore.setState({ peers: readPeers(provider.awareness) });
+}
+
+/** Connects the Y.Doc, awareness, and poll loop. Idempotent (HMR-safe). */
+export function startCollab(): void {
+  if (started) {
+    return;
+  }
+  started = true;
+
+  // The initial role can come from the URL (`/?role=proposer`), so a second
+  // window can be opened straight into proposer mode.
+  const initialRole: DemoRole =
+    new URLSearchParams(location.search).get("role") === "proposer" ? "proposer" : "editor";
+  setApiRole(initialRole);
+  useCollabStore.setState({
+    role: initialRole,
+    selfName: t("presence.userName", { n: doc.clientID % 1000 }),
+  });
+
+  doc.on("update", () => {
+    useCollabStore.setState({ patient: root.toJSON() as Patient });
+  });
+
+  connectProvider(initialRole);
 
   const poll = async (): Promise<void> => {
     try {
-      const [rows, pending] = await Promise.all([fetchRows(), fetchProjectionPending()]);
+      const [rows, pending, proposals] = await Promise.all([
+        fetchRows(),
+        fetchProjectionPending(),
+        fetchProposals(),
+      ]);
       applyProjection(rows, pending);
+      applyProposals(proposals);
     } catch {
       // server briefly unavailable — retry on the next tick
     }

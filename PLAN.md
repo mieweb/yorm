@@ -212,10 +212,10 @@ Design: proposals live in the **same Y.Doc, separate subtree** (`yorm:proposals`
 
 ### 7c. Demo integration (`patient-collab-demo`)
 
-- [ ] Role switcher: browser A = editor, browser B = proposer (`@mieweb/ui` toggle)
-- [ ] Proposer's edits render as pending suggestions (visually distinct, ARIA-announced); editor sees an accept/reject review list
-- [ ] Live rows panel demonstrates: proposal pending → no row change; accept → rows update; reject → nothing
-- [ ] Playwright test: propose in B → rows unchanged → accept in A → rows update; reject path covered
+- [x] Role switcher: browser A = editor, browser B = proposer (`@mieweb/ui` toggle)
+- [x] Proposer's edits render as pending suggestions (visually distinct, ARIA-announced); editor sees an accept/reject review list
+- [x] Live rows panel demonstrates: proposal pending → no row change; accept → rows update; reject → nothing
+- [x] Playwright test: propose in B → rows unchanged → accept in A → rows update; reject path covered
 
 Exit criteria: two-browser demo shows propose/accept/reject end to end with SQL reflecting only accepted state.
 

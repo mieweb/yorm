@@ -105,6 +105,9 @@ importers:
       '@yorm/fhir':
         specifier: workspace:*
         version: link:../../packages/fhir
+      '@yorm/yjs':
+        specifier: workspace:*
+        version: link:../../packages/yjs
       example-fhir-patient-contacts:
         specifier: workspace:*
         version: link:../fhir-patient-contacts

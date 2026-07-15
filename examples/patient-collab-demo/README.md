@@ -1,9 +1,11 @@
 # patient-collab-demo
 
-A collaborative FHIR **Patient** editor (PLAN.md Milestone 6): two browsers edit the
-same Patient live over Yjs, while a SQLite projection panel shows the relational
-`contact*` rows the YORM projection engine derives from the canonical document —
-committed according to a selectable autosave policy.
+A collaborative FHIR **Patient** editor (PLAN.md Milestones 6 + 7c): two browsers
+edit the same Patient live over Yjs, while a SQLite projection panel shows the
+relational `contact*` rows the YORM projection engine derives from the canonical
+document — committed according to a selectable autosave policy. A role switcher
+turns a browser into a **proposer** whose edits become reviewable suggestions
+instead of direct writes.
 
 What it demonstrates:
 
@@ -23,6 +25,10 @@ What it demonstrates:
 - **6d — Playwright e2e** ([tests/](tests/)): convergence across two browser
   contexts and policy semantics (explicit → rows only after Save; on-blur →
   rows after blur).
+- **7c — Suggestion mode** ([src/client/components/ReviewPanel.tsx](src/client/components/ReviewPanel.tsx)):
+  an editor/proposer role switcher, pending-suggestion chips on the form, an
+  accept/reject review list, and the `yorm_proposal` tracking table in the
+  rows panel — see [Roles & proposed changes](#roles--proposed-changes-m7c).
 
 ## One-command startup
 
@@ -45,30 +51,41 @@ pnpm --filter patient-collab-demo start   # serves client + API on :5178
 
 ```mermaid
 graph LR
-  subgraph BrowserA["Browser A"]
+  subgraph BrowserA["Browser A (editor)"]
     FormA["eSheet Patient form"] <--> StoreA["Zustand store"] <--> DocA["Y.Doc"]
+    ReviewA["Review list (accept/reject)"]
   end
-  subgraph BrowserB["Browser B"]
+  subgraph BrowserB["Browser B (proposer)"]
     FormB["eSheet Patient form"] <--> StoreB["Zustand store"] <--> DocB["Y.Doc"]
   end
-  DocA <-->|"y-websocket /yorm/ws/Patient/p-demo"| ServerDoc["Server Y.Doc (canonical)"]
-  DocB <-->|"y-websocket"| ServerDoc
+  DocA <-->|"y-websocket /yorm/ws/Patient/p-demo?role=editor"| ServerDoc["Server Y.Doc (canonical + yorm:proposals)"]
+  DocB <-->|"y-websocket ?role=proposer (canonical writes refused)"| ServerDoc
+  StoreB -.->|"POST /proposals (change intent)"| Proposals["yorm:proposals subtree"]
+  Proposals --- ServerDoc
+  ReviewA -.->|"POST /proposals/:pid/accept | reject"| Proposals
   ServerDoc --> Scheduler["Projection scheduler (trigger policy)"]
-  Scheduler --> Mapping["fhir.Patient@1 mapping"]
+  Scheduler --> Mapping["fhir.Patient@1 mapping (canonical subtree only)"]
+  Scheduler --> Tracking["yorm.proposals@1 tracking mapping"]
   Mapping --> Sqlite[("SQLite contact* tables")]
+  Tracking --> ProposalTable[("yorm_proposal table")]
   Sqlite -->|"GET /api/rows (poll 750 ms)"| PanelA["Rows panel A"]
+  ProposalTable -->|"GET /api/rows"| PanelA
   Sqlite -->|"GET /api/rows"| PanelB["Rows panel B"]
 
   classDef doc fill:#e0e7ff,stroke:#4338ca;
   classDef store fill:#dcfce7,stroke:#15803d;
+  classDef proposal fill:#fef3c7,stroke:#b45309;
   class DocA,DocB,ServerDoc doc;
-  class Sqlite store;
+  class Sqlite,ProposalTable store;
+  class Proposals,ReviewA proposal;
 ```
 
 The server ([src/server.ts](src/server.ts)) reuses the whole POC stack from
 [examples/fhir-patient-contacts](../fhir-patient-contacts/README.md)
-(`createPocServer` + `seedContacts`) and adds `GET /api/rows` plus static
-serving of the built client.
+(`createPocServer` + `seedContacts`) and adds the demo roles
+(`onAuthorizeWrite`), the `yorm_proposal` tracking projection
+(`proposalTrackingMapping`), `GET /api/rows`, and static serving of the built
+client.
 
 ## Autosave policies
 
@@ -85,6 +102,40 @@ SQLite projection commits.
 
 The "unsaved projection changes" indicator polls
 `GET /yorm/docs/Patient/p-demo/projection-state`.
+
+## Roles & proposed changes (M7c)
+
+The header's **Role** select switches between:
+
+| Role     | Canonical writes | Proposals                      |
+| -------- | ---------------- | ------------------------------ |
+| Editor   | direct (Yjs)     | reviews: accept / reject       |
+| Proposer | refused          | creates via `POST …/proposals` |
+
+This is demo-level auth: the client claims its role via `?role=` on the
+WebSocket URL and an `X-Demo-Role` header on REST calls; the server's
+`onAuthorizeWrite` hook lets proposers write only the `"proposals"` scope
+(canonical PUT/PATCH/accept/reject get 403). The `@yorm/hono` plugin
+additionally guards `?role=proposer` WebSocket connections server-side: a sync
+update that would change the canonical subtree is refused and the socket is
+closed with 1008 — proposer edits can never leak into the document.
+
+The proposals flow: a proposer's field edits are debounced into semantic
+change intents (`{ path, op: "set", proposedValue, actor }`, path taken from
+the field spec in [src/client/patientFields.ts](src/client/patientFields.ts))
+and stored in the `yorm:proposals` subtree of the same Y.Doc. Pending
+suggestions render as chips under the form plus an outline on the affected
+input (linked via `aria-describedby`, announced through the aria-live
+region). Editors see them in the **Suggested changes** review list (proposed
+vs. base value, actor) with Accept / Reject; a stale accept (the canonical
+value changed since the proposal, HTTP 409) surfaces an inline "changed since
+proposed" state offering **Accept anyway** or Reject. Because the document
+codec materializes only the canonical subtree, the `contact*` rows never see
+an unaccepted change — while the `yorm_proposal` tracking table (also in the
+rows panel) shows every intent and its status live: pending → a
+`yorm_proposal` row appears but contact rows are unchanged; accept → contact
+rows update and the row flips to `accepted`; reject → only the status
+changes.
 
 ## Accessibility & i18n
 

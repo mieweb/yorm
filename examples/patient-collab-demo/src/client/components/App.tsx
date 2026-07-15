@@ -13,6 +13,8 @@ import { PatientForm } from "./PatientForm";
 import { PolicyBar } from "./PolicyBar";
 import { PresenceBar } from "./PresenceBar";
 import { ProjectionPanel } from "./ProjectionPanel";
+import { ReviewPanel } from "./ReviewPanel";
+import { RoleSwitcher } from "./RoleSwitcher";
 import "./app-shell.scss";
 
 const STATUS_VARIANT: Record<ConnectionStatus, "success" | "warning" | "danger"> = {
@@ -40,6 +42,7 @@ export function App(): React.JSX.Element {
         </div>
         <div className="app-status">
           <PresenceBar />
+          <RoleSwitcher />
           <Badge variant={STATUS_VARIANT[status]} aria-label={t("connection.label")}>
             {STATUS_LABEL[status]}
           </Badge>
@@ -49,6 +52,7 @@ export function App(): React.JSX.Element {
         <section className="editor-pane" aria-label={t("form.title")}>
           <PolicyBar />
           <PatientForm />
+          <ReviewPanel />
         </section>
         <ProjectionPanel />
       </main>

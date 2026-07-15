@@ -24,6 +24,14 @@ export interface PatientFieldSpec {
   read(patient: Patient): string;
   /** Mutates the `resource` root map (call inside `doc.transact`). */
   write(root: Y.Map<unknown>, value: string): void;
+  /**
+   * Path into the canonical Patient for a `set` proposal (M7c), or `null`
+   * when the structure the path addresses does not exist yet (the demo only
+   * proposes over existing elements; creating them needs the editor role).
+   */
+  proposalPath(patient: Patient): (string | number)[] | null;
+  /** Converts the form input string into the proposed JSON value. */
+  toProposedValue(value: string): unknown;
 }
 
 function ensureArray(root: Y.Map<unknown>, key: string): Y.Array<unknown> {
@@ -78,6 +86,35 @@ function readTelecom(patient: Patient, system: string): string {
   return patient.telecom?.find((point) => point.system === system)?.value ?? "";
 }
 
+/** Proposal path for the first name entry's `part`, when a name exists. */
+function namePath(patient: Patient, part: string): (string | number)[] | null {
+  return patient.name?.[0] ? ["name", 0, part] : null;
+}
+
+/** Proposal path for the `value` of the telecom entry with `system`. */
+function telecomPath(patient: Patient, system: string): (string | number)[] | null {
+  const index = patient.telecom?.findIndex((point) => point.system === system) ?? -1;
+  return index >= 0 ? ["telecom", index, "value"] : null;
+}
+
+const identity = (value: string): unknown => value;
+
+/** Two proposal paths address the same element. */
+export function samePath(
+  a: readonly (string | number)[],
+  b: readonly (string | number)[],
+): boolean {
+  return a.length === b.length && a.every((segment, i) => segment === b[i]);
+}
+
+/** Renders a proposed/base JSON value for display (given names are arrays). */
+export function formatFieldValue(value: unknown): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  return Array.isArray(value) ? value.map(String).join(" ") : String(value);
+}
+
 export const PATIENT_FIELDS: readonly PatientFieldSpec[] = [
   {
     id: "given",
@@ -95,6 +132,8 @@ export const PATIENT_FIELDS: readonly PatientFieldSpec[] = [
       given.push(parts);
       name.set("given", given);
     },
+    proposalPath: (patient) => namePath(patient, "given"),
+    toProposedValue: (value) => value.trim().split(/\s+/).filter(Boolean),
   },
   {
     id: "family",
@@ -102,6 +141,8 @@ export const PATIENT_FIELDS: readonly PatientFieldSpec[] = [
     inputType: "string",
     read: (patient) => patient.name?.[0]?.family ?? "",
     write: (root, value) => setOrDelete(ensureName(root), "family", value),
+    proposalPath: (patient) => namePath(patient, "family"),
+    toProposedValue: identity,
   },
   {
     id: "birthDate",
@@ -109,6 +150,8 @@ export const PATIENT_FIELDS: readonly PatientFieldSpec[] = [
     inputType: "date",
     read: (patient) => patient.birthDate ?? "",
     write: (root, value) => setOrDelete(root, "birthDate", value),
+    proposalPath: () => ["birthDate"],
+    toProposedValue: identity,
   },
   {
     id: "phone",
@@ -118,6 +161,8 @@ export const PATIENT_FIELDS: readonly PatientFieldSpec[] = [
     inputType: "string",
     read: (patient) => readTelecom(patient, "phone"),
     write: (root, value) => setOrDelete(ensureTelecom(root, "phone", "t-phone"), "value", value),
+    proposalPath: (patient) => telecomPath(patient, "phone"),
+    toProposedValue: identity,
   },
   {
     id: "email",
@@ -125,6 +170,8 @@ export const PATIENT_FIELDS: readonly PatientFieldSpec[] = [
     inputType: "email",
     read: (patient) => readTelecom(patient, "email"),
     write: (root, value) => setOrDelete(ensureTelecom(root, "email", "t-email"), "value", value),
+    proposalPath: (patient) => telecomPath(patient, "email"),
+    toProposedValue: identity,
   },
 ];
 

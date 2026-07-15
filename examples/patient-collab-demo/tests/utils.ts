@@ -17,10 +17,10 @@ import { t } from "../src/client/i18n";
 export const runId = Date.now().toString(36);
 
 /** Opens the app in a fresh browser context and waits until it is usable. */
-export async function openEditor(browser: Browser): Promise<Page> {
+export async function openEditor(browser: Browser, path = "/"): Promise<Page> {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto(path);
   await expect(fieldInput(page, t("form.family"))).toBeVisible();
   await expect(projectionPanel(page).getByRole("cell", { name: "p-demo" }).first()).toBeVisible();
   return page;

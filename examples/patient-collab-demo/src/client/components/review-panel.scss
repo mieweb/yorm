@@ -1,0 +1,78 @@
+/* Editor review list — open suggestions with accept/reject actions. */
+
+.review-panel {
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-lg);
+  background: var(--mieweb-card);
+  box-shadow: var(--mieweb-shadow-card);
+  padding: 1rem;
+}
+
+.review-title {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--mieweb-primary-700);
+}
+
+.review-subtitle {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--mieweb-muted-foreground);
+}
+
+.review-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--mieweb-muted-foreground);
+}
+
+.review-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.review-item {
+  border: 1px solid var(--mieweb-warning);
+  border-radius: var(--mieweb-radius-md);
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.review-item-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.review-field {
+  font-weight: 600;
+}
+
+.review-proposed {
+  color: var(--mieweb-warning);
+  font-weight: 600;
+}
+
+.review-base,
+.review-actor {
+  color: var(--mieweb-muted-foreground);
+}
+
+.review-conflict {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--mieweb-destructive);
+}
+
+.review-actions {
+  display: flex;
+  gap: 0.5rem;
+}

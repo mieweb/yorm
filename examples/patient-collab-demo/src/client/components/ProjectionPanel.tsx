@@ -1,8 +1,10 @@
 /**
- * Live projection panel (PLAN.md 6c) — the "rows are projections" money
- * shot: the four SQLite contact tables, polled from `/api/rows` and updated
- * as the projection engine commits. Column and table names are database
- * identifiers, shown verbatim (they are not translatable UI copy).
+ * Live projection panel (PLAN.md 6c + 7c) — the "rows are projections" money
+ * shot: the four SQLite contact tables plus the `yorm_proposal` tracking
+ * table, polled from `/api/rows` and updated as the projection engine
+ * commits. Pending proposals appear here as `yorm_proposal` rows while the
+ * contact rows stay untouched until acceptance. Column and table names are
+ * database identifiers, shown verbatim (they are not translatable UI copy).
  */
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@mieweb/ui";
 import { CONTACT_TABLES } from "example-fhir-patient-contacts/schema";
@@ -12,9 +14,11 @@ import { t } from "../i18n";
 import { useCollabStore } from "../store";
 import "./projection-panel.scss";
 
-type ContactTable = (typeof CONTACT_TABLES)[number];
+const ROWS_TABLES = [...CONTACT_TABLES, "yorm_proposal"] as const;
 
-const TABLE_COLUMNS: Record<ContactTable, readonly string[]> = {
+type RowsTableName = (typeof ROWS_TABLES)[number];
+
+const TABLE_COLUMNS: Record<RowsTableName, readonly string[]> = {
   contact: [
     "contact_id",
     "first",
@@ -36,9 +40,10 @@ const TABLE_COLUMNS: Record<ContactTable, readonly string[]> = {
     "entry_value",
   ],
   contact_raw_property: ["contact_id", "property", "value"],
+  yorm_proposal: ["proposal_id", "path", "op", "status", "actor"],
 };
 
-function RowsTable({ table, rows }: { table: ContactTable; rows: RowsSnapshot[ContactTable] }) {
+function RowsTable({ table, rows }: { table: RowsTableName; rows: RowsSnapshot[RowsTableName] }) {
   const columns = TABLE_COLUMNS[table];
   return (
     <div className="projection-table">
@@ -83,7 +88,7 @@ export function ProjectionPanel(): React.JSX.Element {
       <h2 className="projection-title">{t("rows.title")}</h2>
       <p className="projection-subtitle">{t("rows.subtitle")}</p>
       {rows &&
-        CONTACT_TABLES.map((table) => <RowsTable key={table} table={table} rows={rows[table]} />)}
+        ROWS_TABLES.map((table) => <RowsTable key={table} table={table} rows={rows[table]} />)}
     </section>
   );
 }
