@@ -32,11 +32,16 @@ export function ReviewPanel(): React.JSX.Element {
   const proposals = useCollabStore((state) => state.proposals);
   const actions = useProposalActions();
   const [expanded, setExpanded] = useState(true);
+  // Resolved history is hidden by default: the badge counts OPEN suggestions,
+  // and showing dozens of resolved intents under a "0 open" badge reads as a
+  // contradiction. The toggle keeps the full audit trail one click away.
+  const [showResolved, setShowResolved] = useState(false);
 
   const isEditor = role === "editor";
   const open = proposals.filter((proposal) => proposal.status === "proposed");
   // Open first (oldest → newest), then resolved (newest resolution first).
   const resolved = proposals.filter((proposal) => proposal.status !== "proposed").reverse();
+  const listed = showResolved ? [...open, ...resolved] : open;
 
   return (
     <section className="review-panel" aria-label={t("review.title")}>
@@ -80,11 +85,24 @@ export function ReviewPanel(): React.JSX.Element {
             </Button>
           </div>
         )}
-        {open.length === 0 && resolved.length === 0 ? (
+        {resolved.length > 0 && (
+          <button
+            type="button"
+            className="review-resolved-toggle"
+            aria-expanded={showResolved}
+            aria-label={t(showResolved ? "review.hideResolvedLabel" : "review.showResolvedLabel")}
+            onClick={() => setShowResolved((previous) => !previous)}
+          >
+            {showResolved
+              ? t("review.hideResolved", { count: resolved.length })
+              : t("review.showResolved", { count: resolved.length })}
+          </button>
+        )}
+        {listed.length === 0 ? (
           <p className="review-empty">{t("review.empty")}</p>
         ) : (
           <ul className="review-list">
-            {[...open, ...resolved].map((proposal) => (
+            {listed.map((proposal) => (
               <ReviewItem
                 key={proposal.id}
                 proposal={proposal}

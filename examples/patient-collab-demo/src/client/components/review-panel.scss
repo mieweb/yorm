@@ -45,6 +45,22 @@
   color: var(--mieweb-muted-foreground);
 }
 
+.review-resolved-toggle {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 0.8rem;
+  color: var(--mieweb-primary-700);
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--mieweb-ring);
+    outline-offset: 2px;
+  }
+}
+
 /* Height-capped so accumulating items never reflow the page. */
 .review-list {
   margin: 0;

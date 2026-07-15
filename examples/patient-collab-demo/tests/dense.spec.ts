@@ -96,7 +96,8 @@ test("Accept all mass-applies every open suggestion", async ({ browser }) => {
   await expect(projectionPanel(editor).getByRole("cell", { name: email })).toBeVisible();
   await expect(proposalRow(editor, phoneId)).toContainText("accepted");
   await expect(proposalRow(editor, emailId)).toContainText("accepted");
-  // The top bar keeps both listed, greyed out as resolved.
+  // Resolved history is hidden by default; the toggle reveals both, greyed.
+  await panel.getByRole("button", { name: t("review.showResolvedLabel") }).click();
   await expect(panel.getByRole("listitem").filter({ hasText: phone })).toContainText(
     t("review.status.accepted"),
   );
