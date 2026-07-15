@@ -1,20 +1,23 @@
 /**
- * UI shell (PLAN.md 6c): header with presence + connection status, the
- * policy bar + eSheet Patient form on the left, the live SQLite projection
- * panel on the right, and a polite live region announcing presence and row
- * updates to assistive technologies.
+ * UI shell (PLAN.md 6c): header with presence + connection status + the
+ * dense/eSheet view toggle, the accumulating proposals bar on top of the
+ * editor pane, the policy bar + Patient editor on the left, the live SQLite
+ * projection panel on the right, and a polite live region announcing
+ * presence and row updates to assistive technologies.
  */
 import { Badge } from "@mieweb/ui";
 
 import { t } from "../i18n";
 import { useCollabStore } from "../store";
 import type { ConnectionStatus } from "../store";
+import { PatientEditor } from "./PatientEditor";
 import { PatientForm } from "./PatientForm";
 import { PolicyBar } from "./PolicyBar";
 import { PresenceBar } from "./PresenceBar";
 import { ProjectionPanel } from "./ProjectionPanel";
 import { ReviewPanel } from "./ReviewPanel";
 import { RoleSwitcher } from "./RoleSwitcher";
+import { ViewToggle } from "./ViewToggle";
 import "./app-shell.scss";
 
 const STATUS_VARIANT: Record<ConnectionStatus, "success" | "warning" | "danger"> = {
@@ -31,6 +34,7 @@ const STATUS_LABEL: Record<ConnectionStatus, string> = {
 
 export function App(): React.JSX.Element {
   const status = useCollabStore((state) => state.status);
+  const view = useCollabStore((state) => state.view);
   const announcement = useCollabStore((state) => state.announcement);
 
   return (
@@ -42,6 +46,7 @@ export function App(): React.JSX.Element {
         </div>
         <div className="app-status">
           <PresenceBar />
+          <ViewToggle />
           <RoleSwitcher />
           <Badge variant={STATUS_VARIANT[status]} aria-label={t("connection.label")}>
             {STATUS_LABEL[status]}
@@ -50,9 +55,9 @@ export function App(): React.JSX.Element {
       </header>
       <main className="app-main">
         <section className="editor-pane" aria-label={t("form.title")}>
-          <PolicyBar />
-          <PatientForm />
           <ReviewPanel />
+          <PolicyBar />
+          {view === "dense" ? <PatientEditor /> : <PatientForm />}
         </section>
         <ProjectionPanel />
       </main>

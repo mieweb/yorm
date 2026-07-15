@@ -5,7 +5,8 @@ edit the same Patient live over Yjs, while a SQLite projection panel shows the
 relational `contact*` rows the YORM projection engine derives from the canonical
 document — committed according to a selectable autosave policy. A role switcher
 turns a browser into a **proposer** whose edits become reviewable suggestions
-instead of direct writes.
+instead of direct writes, and a header view toggle switches between the demo's
+own **dense editor** (default) and the **eSheet**-rendered form.
 
 What it demonstrates:
 
@@ -14,21 +15,37 @@ What it demonstrates:
   `doc.getMap("resource").toJSON()` refreshed on every doc update; actions mutate
   Y types inside `doc.transact`. Awareness feeds a presence slice
   (`{clientId, name, color, focusedField}`).
+- **Dense custom Patient editor** ([src/client/components/PatientEditor.tsx](src/client/components/PatientEditor.tsx)):
+  the demo's own compact multi-column editor over the **entire** Patient object,
+  generated from the field specs in
+  [src/client/patientEditorFields.ts](src/client/patientEditorFields.ts) —
+  identifier entries, active, gender, every name / telecom / address entry,
+  birth date, photo URL, and the yorm extensions (organization, note). Fields
+  that no SQL column covers (identifier, active, gender, …) still sync and
+  persist — they live only in the canonical document ("keep the object") — and
+  anything the editor has no input for renders as read-only JSON chips in the
+  **unmapped extras** strip. A colored dot next to a field shows a peer editing
+  it; open suggestions render **inline next to the field** (see below).
 - **6b — eSheet Patient form** ([src/client/components/PatientForm.tsx](src/client/components/PatientForm.tsx)):
-  the form is rendered by `@esheet/renderer` from a `FormDefinition` built from
-  [src/client/patientFields.ts](src/client/patientFields.ts) (given/family names,
-  birth date, phone, email). The eSheet form store and the Yjs-backed store are
-  wired both ways, writing only when a value actually differs (echo-safe).
+  the alternate view, rendered by `@esheet/renderer` from a `FormDefinition`
+  built from [src/client/patientFields.ts](src/client/patientFields.ts)
+  (given/family names, birth date, phone, email). The eSheet form store and the
+  Yjs-backed store are wired both ways, writing only when a value actually
+  differs (echo-safe). The header **Editor: Dense | eSheet** toggle (also
+  `?view=esheet`) swaps views over the same store/doc — a later phase replaces
+  the npm `@esheet/*@0.0.3` packages with eSheet built from source.
 - **6c — UI shell** with `@mieweb/ui`: presence avatars, connection status, the
   autosave-policy dropdown, Save button (explicit mode), an "unsaved projection
   changes" indicator, and the live SQLite rows panel (polled every 750 ms).
 - **6d — Playwright e2e** ([tests/](tests/)): convergence across two browser
-  contexts and policy semantics (explicit → rows only after Save; on-blur →
-  rows after blur).
+  contexts, policy semantics (explicit → rows only after Save; on-blur →
+  rows after blur), unmapped-field convergence, inline/mass proposal review,
+  and the view toggle.
 - **7c — Suggestion mode** ([src/client/components/ReviewPanel.tsx](src/client/components/ReviewPanel.tsx)):
-  an editor/proposer role switcher, pending-suggestion chips on the form, an
-  accept/reject review list, and the `yorm_proposal` tracking table in the
-  rows panel — see [Roles & proposed changes](#roles--proposed-changes-m7c).
+  an editor/proposer role switcher, inline suggestion adornments on the dense
+  editor, a top accumulating proposals bar with mass actions, and the
+  `yorm_proposal` tracking table in the rows panel — see
+  [Roles & proposed changes](#roles--proposed-changes-m7c).
 
 ## One-command startup
 
@@ -52,11 +69,11 @@ pnpm --filter patient-collab-demo start   # serves client + API on :5178
 ```mermaid
 graph LR
   subgraph BrowserA["Browser A (editor)"]
-    FormA["eSheet Patient form"] <--> StoreA["Zustand store"] <--> DocA["Y.Doc"]
-    ReviewA["Review list (accept/reject)"]
+    FormA["Patient editor (dense | eSheet)"] <--> StoreA["Zustand store"] <--> DocA["Y.Doc"]
+    ReviewA["Proposals bar + inline adornments (accept/reject)"]
   end
   subgraph BrowserB["Browser B (proposer)"]
-    FormB["eSheet Patient form"] <--> StoreB["Zustand store"] <--> DocB["Y.Doc"]
+    FormB["Patient editor (dense | eSheet)"] <--> StoreB["Zustand store"] <--> DocB["Y.Doc"]
   end
   DocA <-->|"y-websocket /yorm/ws/Patient/p-demo?role=editor"| ServerDoc["Server Y.Doc (canonical + yorm:proposals)"]
   DocB <-->|"y-websocket ?role=proposer (canonical writes refused)"| ServerDoc
@@ -122,20 +139,33 @@ closed with 1008 — proposer edits can never leak into the document.
 
 The proposals flow: a proposer's field edits are debounced into semantic
 change intents (`{ path, op: "set", proposedValue, actor }`, path taken from
-the field spec in [src/client/patientFields.ts](src/client/patientFields.ts))
-and stored in the `yorm:proposals` subtree of the same Y.Doc. Pending
-suggestions render as chips under the form plus an outline on the affected
-input (linked via `aria-describedby`, announced through the aria-live
-region). Editors see them in the **Suggested changes** review list (proposed
-vs. base value, actor) with Accept / Reject; a stale accept (the canonical
+the field specs in [src/client/patientFields.ts](src/client/patientFields.ts) /
+[src/client/patientEditorFields.ts](src/client/patientEditorFields.ts)) and
+stored in the `yorm:proposals` subtree of the same Y.Doc.
+
+In the dense editor an open suggestion renders **inline next to the field**
+(linked via `aria-describedby`): the proposed value and actor, plus — for
+editors — Accept / Reject buttons right there. A stale accept (the canonical
 value changed since the proposal, HTTP 409) surfaces an inline "changed since
-proposed" state offering **Accept anyway** or Reject. Because the document
-codec materializes only the canonical subtree, the `contact*` rows never see
-an unaccepted change — while the `yorm_proposal` tracking table (also in the
-rows panel) shows every intent and its status live: pending → a
-`yorm_proposal` row appears but contact rows are unchanged; accept → contact
-rows update and the row flips to `accepted`; reject → only the status
-changes.
+proposed" state offering **Accept anyway** or Reject. Proposers see their own
+pending suggestion as a visually distinct chip without action buttons; in the
+eSheet view suggestions render as chips under the form with an outline on the
+affected input.
+
+The **Suggested changes** bar sits on top of the editor pane and accumulates
+every change intent of the session: open ones first (with per-item Accept /
+Reject for editors), then resolved ones greyed out with their status. It is
+collapsible (`<details>`, default open) with an open-count badge, and the list
+is height-capped so accumulation never reflows the page. Editors also get mass
+actions — **Accept all** / **Reject all** — which resolve the open proposals
+sequentially; conflicted accepts stay listed with their inline conflict state.
+
+Because the document codec materializes only the canonical subtree, the
+`contact*` rows never see an unaccepted change — while the `yorm_proposal`
+tracking table (also in the rows panel) shows every intent and its status
+live: pending → a `yorm_proposal` row appears but contact rows are unchanged;
+accept → contact rows update and the row flips to `accepted`; reject → only
+the status changes.
 
 ## Accessibility & i18n
 
@@ -148,13 +178,16 @@ changes.
 
 ## Notes
 
+- The **dense** view is the default; `?view=esheet` (or the header toggle)
+  renders the eSheet form instead. A later phase replaces the published
+  `@esheet/*@0.0.3` packages with eSheet built from source.
 - `@esheet/renderer@0.0.3` declares a React ≥ 19 peer but uses no 19-only
   APIs; the demo runs it on React 18 with Vite `resolve.dedupe` for
   react/react-dom.
 - The phone field uses eSheet's plain `string` input type (not `tel`): the tel
   mask assumes US numbers and corrupts the fixture's international value.
 
-![The collaborative Patient editor: eSheet form with the autosave policy dropdown on the left, live SQLite projection rows on the right](docs/screenshot.png)
+![The collaborative Patient editor: the top proposals bar with mass actions, the dense Patient editor with the autosave policy dropdown on the left, the Dense | eSheet view toggle in the header, and live SQLite projection rows on the right](docs/screenshot.png)
 
 ## Tests
 
@@ -165,4 +198,7 @@ pnpm --filter patient-collab-demo test:e2e   # Playwright (chromium)
 
 The e2e config builds the client and runs the single prod server on :5178 for
 determinism. Specs live in `tests/` so the root vitest suite (which globs
-`test/**/*.test.ts`) does not pick them up.
+`test/**/*.test.ts`) does not pick them up. Field locators go through
+accessible labels, which the dense editor and the eSheet view share for the
+common fields; all edited values are run-unique (the server may be reused
+with persisted state, so constant values would be no-op fills).

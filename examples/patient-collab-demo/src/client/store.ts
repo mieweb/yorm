@@ -37,9 +37,12 @@ import {
 import type { AcceptResult, DemoRole, PolicyKind, RowsSnapshot } from "./api";
 import { t } from "./i18n";
 import { getFieldSpec } from "./patientFields";
-import type { PatientFieldId, PatientFieldSpec } from "./patientFields";
+import type { FieldWriteSpec, PatientFieldId } from "./patientFields";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
+
+/** Which Patient editor the left pane renders. */
+export type ViewKind = "dense" | "esheet";
 
 export interface Peer {
   clientId: number;
@@ -59,6 +62,8 @@ export interface CollabState {
   rows: RowsSnapshot | null;
   /** Demo role (M7c): editors write Y directly, proposers only suggest. */
   role: DemoRole;
+  /** Which Patient editor is shown (header toggle, `?view=` param). */
+  view: ViewKind;
   /** The local presence name — used as the proposal actor / resolver. */
   selfName: string;
   /** All change intents of the document, polled with the rows. */
@@ -66,11 +71,14 @@ export interface CollabState {
   /** Latest aria-live announcement (presence / row / proposal updates). */
   announcement: string;
   setField(fieldId: PatientFieldId, value: string): void;
+  /** Generalized write: editor → Y transact, proposer → debounced proposal. */
+  setFieldBySpec(spec: FieldWriteSpec, value: string): void;
   setFocusedField(fieldId: string | null): void;
   selectPolicy(kind: PolicyKind): void;
   save(): void;
   signalBlur(): void;
   setRole(role: DemoRole): void;
+  setView(view: ViewKind): void;
   /** Editor review action; a stale accept resolves to `{ conflict: true }`. */
   resolveProposal(id: string, action: "accept" | "accept-anyway" | "reject"): Promise<AcceptResult>;
 }
@@ -92,15 +100,19 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   pendingProjection: false,
   rows: null,
   role: "editor",
+  view: "dense",
   selfName: "",
   proposals: [],
   announcement: "",
 
   setField(fieldId, value) {
     const spec = getFieldSpec(fieldId);
-    if (!spec) {
-      return;
+    if (spec) {
+      get().setFieldBySpec(spec, value);
     }
+  },
+
+  setFieldBySpec(spec, value) {
     if (get().role === "proposer") {
       queueProposal(spec, value);
       return;
@@ -140,6 +152,10 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     connectProvider(role);
   },
 
+  setView(view) {
+    set({ view });
+  },
+
   async resolveProposal(id, action) {
     const resolvedBy = get().selfName;
     let result: AcceptResult = { conflict: false };
@@ -156,9 +172,9 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 }));
 
 /** Debounced proposer edits, one pending POST per field. */
-const proposeTimers = new Map<PatientFieldId, ReturnType<typeof setTimeout>>();
+const proposeTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-function queueProposal(spec: PatientFieldSpec, value: string): void {
+function queueProposal(spec: FieldWriteSpec, value: string): void {
   const existing = proposeTimers.get(spec.id);
   if (existing !== undefined) {
     clearTimeout(existing);
@@ -172,7 +188,7 @@ function queueProposal(spec: PatientFieldSpec, value: string): void {
   );
 }
 
-async function submitProposal(spec: PatientFieldSpec, value: string): Promise<void> {
+async function submitProposal(spec: FieldWriteSpec, value: string): Promise<void> {
   const { patient, selfName } = useCollabStore.getState();
   if (!patient) {
     return;
@@ -321,12 +337,14 @@ export function startCollab(): void {
   started = true;
 
   // The initial role can come from the URL (`/?role=proposer`), so a second
-  // window can be opened straight into proposer mode.
-  const initialRole: DemoRole =
-    new URLSearchParams(location.search).get("role") === "proposer" ? "proposer" : "editor";
+  // window can be opened straight into proposer mode; the initial view from
+  // `?view=esheet` (the dense editor is the default).
+  const params = new URLSearchParams(location.search);
+  const initialRole: DemoRole = params.get("role") === "proposer" ? "proposer" : "editor";
   setApiRole(initialRole);
   useCollabStore.setState({
     role: initialRole,
+    view: params.get("view") === "esheet" ? "esheet" : "dense",
     selfName: t("presence.userName", { n: doc.clientID % 1000 }),
   });
 

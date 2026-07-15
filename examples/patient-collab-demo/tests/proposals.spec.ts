@@ -1,40 +1,21 @@
 /**
  * PLAN.md 7c — suggestion mode end to end: browser A is an editor, browser B
  * a proposer (`/?role=proposer`). B's edits become proposals (no canonical /
- * row change); A reviews them — accept applies the change everywhere, reject
- * changes nothing but the `yorm_proposal` status.
+ * row change); A reviews them in the top proposals bar — accept applies the
+ * change everywhere, reject changes nothing but the `yorm_proposal` status.
  */
 import { expect, test } from "@playwright/test";
-import type { Locator, Page } from "@playwright/test";
 
 import { t } from "../src/client/i18n";
-import { fieldInput, openEditor, projectionPanel, runId } from "./utils";
-
-/** The editor's review list. */
-function reviewPanel(page: Page): Locator {
-  return page.getByRole("region", { name: t("review.title") });
-}
-
-/** The `yorm_proposal` tracking row for one proposal id in the rows panel. */
-function proposalRow(page: Page, proposalId: string): Locator {
-  return projectionPanel(page).getByRole("row").filter({ hasText: proposalId });
-}
-
-/**
- * Fills a field as the proposer and returns the created proposal's id
- * (captured from the debounced `POST /proposals` response).
- */
-async function propose(page: Page, fieldLabel: string, value: string): Promise<string> {
-  const created = page.waitForResponse(
-    (response) =>
-      response.url().includes("/proposals") &&
-      response.request().method() === "POST" &&
-      response.status() === 201,
-  );
-  await fieldInput(page, fieldLabel).fill(value);
-  const body = (await (await created).json()) as { proposal: { id: string } };
-  return body.proposal.id;
-}
+import {
+  fieldInput,
+  openEditor,
+  projectionPanel,
+  proposalRow,
+  propose,
+  reviewPanel,
+  runId,
+} from "./utils";
 
 test("proposer suggests, editor accepts: rows update only on accept", async ({ browser }) => {
   const editor = await openEditor(browser);

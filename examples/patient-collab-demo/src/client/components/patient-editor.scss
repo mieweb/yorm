@@ -1,0 +1,211 @@
+/* Dense custom Patient editor — compact multi-column grid over the whole
+   Patient object, with inline suggestion adornments and presence dots. */
+
+.patient-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.patient-editor-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--mieweb-muted-foreground);
+}
+
+.patient-editor-id {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.patient-editor-id-label {
+  color: var(--mieweb-muted-foreground);
+}
+
+.editor-section {
+  margin: 0;
+  padding: 0.4rem 0.65rem 0.65rem;
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-md);
+}
+
+.editor-section-legend {
+  padding: 0 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mieweb-primary-700);
+}
+
+.editor-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 0.5rem 0.75rem;
+}
+
+.dense-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+/* Checkbox fields sit inline with their label row. */
+.dense-field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dense-field-head {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.dense-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--mieweb-muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dense-peer-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: var(--mieweb-radius-full);
+  font-size: 0.55rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--mieweb-card);
+}
+
+.dense-input,
+.dense-checkbox {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--mieweb-foreground);
+  background: var(--mieweb-background);
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-sm);
+}
+
+.dense-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.2rem 0.4rem;
+}
+
+.dense-input:focus-visible,
+.dense-checkbox:focus-visible {
+  outline: 2px solid var(--mieweb-ring);
+  outline-offset: 1px;
+}
+
+/* An input with an open suggestion — visually distinct pending state. */
+.dense-input.has-suggestion,
+.dense-checkbox.has-suggestion {
+  border-color: var(--mieweb-warning);
+  box-shadow: 0 0 0 1px var(--mieweb-warning);
+}
+
+/* Inline suggestion adornment right next to the field. */
+.dense-suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.4rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px dashed var(--mieweb-warning);
+  border-radius: var(--mieweb-radius-sm);
+  background: var(--mieweb-card);
+  font-size: 0.72rem;
+}
+
+/* The proposer's own pending suggestion (no actions) — muted variant. */
+.dense-suggestion-pending {
+  border-style: dotted;
+  font-style: italic;
+}
+
+.dense-suggestion-value {
+  font-weight: 600;
+  color: var(--mieweb-warning);
+}
+
+.dense-suggestion-actor {
+  color: var(--mieweb-muted-foreground);
+}
+
+.dense-suggestion-conflict {
+  flex-basis: 100%;
+  color: var(--mieweb-destructive);
+}
+
+.dense-suggestion-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+/* Unmapped extras — read-only JSON chips ("keep the object"). */
+.editor-extras {
+  border-top: 1px dashed var(--mieweb-border);
+  padding-top: 0.6rem;
+}
+
+.editor-extras-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mieweb-muted-foreground);
+}
+
+.editor-extras-hint {
+  margin: 0.15rem 0 0.4rem;
+  font-size: 0.72rem;
+  color: var(--mieweb-muted-foreground);
+}
+
+.editor-extras-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.editor-extra-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-full);
+  background: var(--mieweb-background);
+  font-size: 0.72rem;
+}
+
+.editor-extra-key {
+  font-weight: 600;
+  color: var(--mieweb-muted-foreground);
+  white-space: nowrap;
+}
+
+.editor-extra-json {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

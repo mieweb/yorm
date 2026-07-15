@@ -5,7 +5,8 @@ import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "**/coverage/**"],
+    // vendor/ holds third-party checkouts (e.g. eSheet) with their own lint setup.
+    ignores: ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "**/coverage/**", "vendor/**"],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

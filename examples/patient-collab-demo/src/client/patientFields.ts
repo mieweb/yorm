@@ -15,13 +15,15 @@ import type { StringKey } from "./i18n";
 
 export type PatientFieldId = "given" | "family" | "birthDate" | "phone" | "email";
 
-export interface PatientFieldSpec {
-  id: PatientFieldId;
-  labelKey: StringKey;
-  /** eSheet text-field input type. */
-  inputType: "string" | "date" | "email";
-  /** Reads the field's current value from the materialized Patient. */
-  read(patient: Patient): string;
+/**
+ * The write side of a field spec — everything the store needs to turn a
+ * string input value into a Y.Doc write (editor role) or a change intent
+ * (proposer role). Shared by the eSheet specs below and the dense editor's
+ * generated specs (`patientEditorFields.ts`).
+ */
+export interface FieldWriteSpec {
+  /** Unique field id — the awareness `focusedField` / debounce key. */
+  id: string;
   /** Mutates the `resource` root map (call inside `doc.transact`). */
   write(root: Y.Map<unknown>, value: string): void;
   /**
@@ -34,7 +36,16 @@ export interface PatientFieldSpec {
   toProposedValue(value: string): unknown;
 }
 
-function ensureArray(root: Y.Map<unknown>, key: string): Y.Array<unknown> {
+export interface PatientFieldSpec extends FieldWriteSpec {
+  id: PatientFieldId;
+  labelKey: StringKey;
+  /** eSheet text-field input type. */
+  inputType: "string" | "date" | "email";
+  /** Reads the field's current value from the materialized Patient. */
+  read(patient: Patient): string;
+}
+
+export function ensureArray(root: Y.Map<unknown>, key: string): Y.Array<unknown> {
   const existing = root.get(key);
   if (existing instanceof Y.Array) {
     return existing;
@@ -74,12 +85,29 @@ function ensureTelecom(root: Y.Map<unknown>, system: string, newId: string): Y.M
 }
 
 /** Sets a string entry, deleting the key when the value is empty. */
-function setOrDelete(map: Y.Map<unknown>, key: string, value: string): void {
+export function setOrDelete(map: Y.Map<unknown>, key: string, value: string): void {
   if (value === "") {
     map.delete(key);
   } else {
     map.set(key, value);
   }
+}
+
+/** Writes a space-separated input into a name entry's `given` string array. */
+export function setGivenNames(name: Y.Map<unknown>, value: string): void {
+  const parts = splitGivenNames(value);
+  if (parts.length === 0) {
+    name.delete("given");
+    return;
+  }
+  const given = new Y.Array<unknown>();
+  given.push(parts);
+  name.set("given", given);
+}
+
+/** Splits a space-separated given-names input into the proposed array. */
+export function splitGivenNames(value: string): string[] {
+  return value.trim().split(/\s+/).filter(Boolean);
 }
 
 function readTelecom(patient: Patient, system: string): string {
@@ -121,19 +149,9 @@ export const PATIENT_FIELDS: readonly PatientFieldSpec[] = [
     labelKey: "form.given",
     inputType: "string",
     read: (patient) => patient.name?.[0]?.given?.join(" ") ?? "",
-    write(root, value) {
-      const name = ensureName(root);
-      const parts = value.trim().split(/\s+/).filter(Boolean);
-      if (parts.length === 0) {
-        name.delete("given");
-        return;
-      }
-      const given = new Y.Array<unknown>();
-      given.push(parts);
-      name.set("given", given);
-    },
+    write: (root, value) => setGivenNames(ensureName(root), value),
     proposalPath: (patient) => namePath(patient, "given"),
-    toProposedValue: (value) => value.trim().split(/\s+/).filter(Boolean),
+    toProposedValue: splitGivenNames,
   },
   {
     id: "family",

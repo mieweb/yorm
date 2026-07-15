@@ -1,0 +1,12 @@
+/* Header view toggle — dense custom editor vs. eSheet form. */
+
+.view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.view-toggle-label {
+  font-size: 0.8rem;
+  color: var(--mieweb-muted-foreground);
+}

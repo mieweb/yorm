@@ -219,6 +219,9 @@ function SyncedPatientForm({ initialPatient }: { initialPatient: Patient }): Rea
   return (
     <div
       className="patient-form"
+      // Flips once the eSheet form store is wired to the Y.Doc — edits made
+      // before that would be lost (the e2e view-toggle spec waits for it).
+      data-ready={formStore !== null}
       onFocusCapture={(event) => {
         const fieldId = fieldIdFromTarget(event.target);
         if (fieldId) {

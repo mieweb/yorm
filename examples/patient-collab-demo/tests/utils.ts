@@ -1,7 +1,9 @@
 /**
  * Shared Playwright helpers: opening an editor page (own browser context),
- * locating eSheet field inputs / the projection rows panel, and switching
- * the autosave policy through the UI (waiting for the server ack).
+ * locating field inputs by accessible label (works for both the dense
+ * editor and the eSheet view — the shared fields carry the same labels),
+ * the projection rows / proposals panels, proposing as a proposer, and
+ * switching the autosave policy through the UI (waiting for the server ack).
  */
 import { expect } from "@playwright/test";
 import type { Browser, Locator, Page } from "@playwright/test";
@@ -26,7 +28,7 @@ export async function openEditor(browser: Browser, path = "/"): Promise<Page> {
   return page;
 }
 
-/** An eSheet field input, located by its accessible label (the question). */
+/** A field input (dense or eSheet), located by its accessible label. */
 export function fieldInput(page: Page, label: string): Locator {
   return page.getByLabel(label, { exact: true });
 }
@@ -34,6 +36,32 @@ export function fieldInput(page: Page, label: string): Locator {
 /** The live SQLite rows panel. */
 export function projectionPanel(page: Page): Locator {
   return page.getByRole("region", { name: t("rows.title") });
+}
+
+/** The top accumulating proposals bar. */
+export function reviewPanel(page: Page): Locator {
+  return page.getByRole("region", { name: t("review.title") });
+}
+
+/** The `yorm_proposal` tracking row for one proposal id in the rows panel. */
+export function proposalRow(page: Page, proposalId: string): Locator {
+  return projectionPanel(page).getByRole("row").filter({ hasText: proposalId });
+}
+
+/**
+ * Fills a field as the proposer and returns the created proposal's id
+ * (captured from the debounced `POST /proposals` response).
+ */
+export async function propose(page: Page, fieldLabel: string, value: string): Promise<string> {
+  const created = page.waitForResponse(
+    (response) =>
+      response.url().includes("/proposals") &&
+      response.request().method() === "POST" &&
+      response.status() === 201,
+  );
+  await fieldInput(page, fieldLabel).fill(value);
+  const body = (await (await created).json()) as { proposal: { id: string } };
+  return body.proposal.id;
 }
 
 /** Picks an autosave policy in the UI and waits for the POST /policy ack. */
