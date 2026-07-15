@@ -535,6 +535,30 @@ pnpm yorm project --mapping fhir.Patient@2 --all
 
 ---
 
+## Projection trigger policy (autosave)
+
+Collaboration and projection have different tempos. Every keystroke should reach other clients immediately, but most relational consumers do not need a row version per keystroke.
+
+YORM therefore separates the two:
+
+- Yjs updates are always persisted immediately. Collaboration, offline merge, and document versioning are never delayed.
+- The projection commit is gated by a per-session trigger policy.
+
+| Policy | Projection runs |
+|---|---|
+| `every-change` | After every persisted document change. |
+| `on-blur` | When the client signals that a field or form lost focus. |
+| `idle` | After a configurable quiet period (default 30 seconds). |
+| `explicit` | Only when the client requests a flush, such as a Save button. |
+
+While a policy defers projection, changes coalesce. When the trigger fires, YORM projects the latest document state once and the checkpoint records the document version range covered. Typing a sentence into a text field under `idle` produces one projection transaction, not one per character.
+
+Deferred state is observable: the projection-state endpoint reports pending unprojected changes, and an explicit flush endpoint forces projection now. The server sets a default policy and a maximum-lag cap, so `explicit` sessions cannot defer projection indefinitely.
+
+This reduces SQL churn and table versioning noise without weakening the CRDT collaboration path.
+
+---
+
 ## Mapping versions and schema evolution
 
 Mappings are immutable once released.
@@ -712,6 +736,45 @@ If the target element no longer exists, the mapping decides whether to:
 - or send it to conflict review.
 
 These are domain semantics and belong in the mapping, not in a generic database trigger.
+
+---
+
+## Proposed changes (suggestion mode)
+
+Not every collaborator should write directly. YORM supports a suggestion workflow in which one user edits the canonical document while another can only propose changes. Relational tables reflect accepted state only.
+
+Proposals are semantic change intents stored in a separate subtree of the same `Y.Doc`:
+
+```text
+yorm:proposals
+--------------
+id
+path
+op                    set | insert | remove
+proposed_value
+base_value
+base_document_version
+actor
+status                proposed | accepted | rejected | superseded
+resolved_by
+resolved_at
+```
+
+Because proposals live in the document, they sync, merge, and work offline like any other CRDT state. Because the codec materializes only the canonical subtree, the projection engine never sees an unaccepted change, so no pending proposal ever reaches a relational row.
+
+The lifecycle is:
+
+1. A proposer records a change intent. The canonical resource is untouched.
+2. Reviewers see the proposal in every connected client.
+3. Accepting applies the intent to the canonical subtree and marks the proposal accepted in one atomic Yjs transaction. Projection then runs under the normal trigger policy.
+4. Rejecting marks the proposal rejected and changes nothing else.
+5. If the canonical value moved after the proposal was made, the stale proposal surfaces as a conflict for the application to resolve.
+
+Roles are enforced server-side: the authorization hook can grant a session write access to the proposals subtree while refusing direct canonical edits.
+
+Open proposals can themselves be projected into a forward-only tracking table, giving DBAs and reports visibility into pending suggestions using the same mapping engine.
+
+Whole-document branch proposals (forking a `Y.Doc` and merging on approval) are a possible future extension; the intent-based model above is the supported v1 design.
 
 ---
 
