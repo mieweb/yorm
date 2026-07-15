@@ -14,6 +14,7 @@ import type { Patient } from "@yorm/fhir";
 
 import { t } from "../i18n";
 import type { StringKey } from "../i18n";
+import { clearResolvedProposals } from "../api";
 import { denseLabelForPath } from "../patientEditorFields";
 import { formatFieldValue } from "../patientFields";
 import { useCollabStore } from "../store";
@@ -86,17 +87,29 @@ export function ReviewPanel(): React.JSX.Element {
           </div>
         )}
         {resolved.length > 0 && (
-          <button
-            type="button"
-            className="review-resolved-toggle"
-            aria-expanded={showResolved}
-            aria-label={t(showResolved ? "review.hideResolvedLabel" : "review.showResolvedLabel")}
-            onClick={() => setShowResolved((previous) => !previous)}
-          >
-            {showResolved
-              ? t("review.hideResolved", { count: resolved.length })
-              : t("review.showResolved", { count: resolved.length })}
-          </button>
+          <div className="review-resolved-controls">
+            <button
+              type="button"
+              className="review-resolved-toggle"
+              aria-expanded={showResolved}
+              aria-label={t(showResolved ? "review.hideResolvedLabel" : "review.showResolvedLabel")}
+              onClick={() => setShowResolved((previous) => !previous)}
+            >
+              {showResolved
+                ? t("review.hideResolved", { count: resolved.length })
+                : t("review.showResolved", { count: resolved.length })}
+            </button>
+            {isEditor && (
+              <button
+                type="button"
+                className="review-resolved-toggle review-clear-resolved"
+                aria-label={t("review.clearResolvedLabel")}
+                onClick={() => void clearResolvedProposals()}
+              >
+                {t("review.clearResolved")}
+              </button>
+            )}
+          </div>
         )}
         {listed.length === 0 ? (
           <p className="review-empty">{t("review.empty")}</p>

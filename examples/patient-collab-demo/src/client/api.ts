@@ -141,3 +141,10 @@ export function acceptProposalAnyway(id: string, resolvedBy: string): Promise<vo
 export function rejectProposal(id: string, resolvedBy: string): Promise<void> {
   return postJson(`${DOC_PATH}/proposals/${id}/reject`, { resolvedBy }).then(() => undefined);
 }
+
+/** Deletes all resolved intents from the document (editor action). */
+export function clearResolvedProposals(): Promise<number> {
+  return postJson(`${DOC_PATH}/proposals/clear-resolved`, {})
+    .then((response) => response.json() as Promise<{ cleared: number }>)
+    .then((body) => body.cleared);
+}

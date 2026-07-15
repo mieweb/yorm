@@ -103,6 +103,14 @@ export interface ProposalsApi {
   acceptAnyway(id: string, resolvedBy: string): void;
   /** Marks the intent `rejected`; the canonical subtree is untouched. */
   reject(id: string, resolvedBy: string): void;
+  /**
+   * Deletes every resolved (non-`proposed`) intent from the subtree in one
+   * Yjs transaction and returns how many were removed. A semantic CRDT
+   * delete: it syncs to every client (including ones holding old state) and
+   * the tracking projection reconciles the corresponding rows away. Open
+   * intents are never touched.
+   */
+  clearResolved(): number;
   /** All intents, sorted by `createdAt` then id, optionally filtered. */
   list(filter?: { status?: ProposalStatus }): ChangeIntent[];
   /** Fires whenever the proposals subtree changes. Returns unsubscribe. */
@@ -339,6 +347,21 @@ export function proposalsApi(doc: Y.Doc, opts: ProposalsApiOptions = {}): Propos
       doc.transact(() => {
         markResolved(record, "rejected", resolvedBy);
       });
+    },
+
+    clearResolved(): number {
+      const resolvedIds: string[] = [];
+      for (const [id, value] of proposals.entries()) {
+        if (value instanceof Y.Map && value.get("status") !== "proposed") {
+          resolvedIds.push(id);
+        }
+      }
+      doc.transact(() => {
+        for (const id of resolvedIds) {
+          proposals.delete(id);
+        }
+      });
+      return resolvedIds.length;
     },
 
     list(filter?: { status?: ProposalStatus }): ChangeIntent[] {

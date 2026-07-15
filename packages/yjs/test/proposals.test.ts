@@ -170,6 +170,31 @@ describe("proposalsApi", () => {
     expect(() => api.withdraw("p2")).toThrow(ProposalStateError);
   });
 
+  it("clearResolved deletes resolved intents only, in one transaction, and syncs", () => {
+    const doc = new Y.Doc();
+    seed(doc, { name: "Ada", city: "Kew" });
+    const api = makeApi(doc);
+    api.propose({ path: ["name"], op: "set", proposedValue: "Grace", actor: "bob" });
+    api.propose({ path: ["city"], op: "set", proposedValue: "Bath", actor: "bob" });
+    api.propose({ path: ["name"], op: "set", proposedValue: "Hedy", actor: "bob" }); // supersedes p1
+    api.accept("p2", "alice");
+
+    let updates = 0;
+    doc.on("update", () => {
+      updates += 1;
+    });
+    // p1 superseded + p2 accepted are cleared; p3 stays open.
+    expect(api.clearResolved()).toBe(2);
+    expect(updates).toBe(1);
+    expect(api.list().map((intent) => intent.id)).toEqual(["p3"]);
+    expect(api.clearResolved()).toBe(0);
+
+    // The deletion is CRDT state: a doc holding the old history converges.
+    const replica = new Y.Doc();
+    Y.applyUpdate(replica, Y.encodeStateAsUpdate(doc));
+    expect(readProposals(replica).map((intent) => intent.id)).toEqual(["p3"]);
+  });
+
   it("updateProposal amends the proposedValue of a still-proposed intent only", () => {
     const doc = new Y.Doc();
     seed(doc, { name: "Ada" });

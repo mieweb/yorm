@@ -45,8 +45,15 @@
   color: var(--mieweb-muted-foreground);
 }
 
-.review-resolved-toggle {
+.review-resolved-controls {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
   margin: 0 0 0.5rem;
+}
+
+.review-resolved-toggle {
+  margin: 0;
   padding: 0;
   border: none;
   background: none;
@@ -59,6 +66,10 @@
     outline: 2px solid var(--mieweb-ring);
     outline-offset: 2px;
   }
+}
+
+.review-clear-resolved {
+  color: var(--mieweb-destructive, var(--mieweb-warning));
 }
 
 /* Height-capped so accumulating items never reflow the page. */

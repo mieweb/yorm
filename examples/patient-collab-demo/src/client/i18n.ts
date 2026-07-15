@@ -99,6 +99,8 @@ const en = {
   "review.hideResolved": "Hide resolved ({count})",
   "review.showResolvedLabel": "Show resolved suggestions",
   "review.hideResolvedLabel": "Hide resolved suggestions",
+  "review.clearResolved": "Clear resolved",
+  "review.clearResolvedLabel": "Delete all resolved suggestions from the document",
   "review.acceptAll": "Accept all",
   "review.rejectAll": "Reject all",
   "review.acceptAllLabel": "Accept all open suggestions",

@@ -394,6 +394,37 @@ describe("@yorm/hono proposal routes (PLAN.md M7)", () => {
     expect(remaining.proposals.map((p: { id: string }) => p.id)).not.toContain(second.id);
   });
 
+  it("clear-resolved deletes resolved history only and needs canonical scope", async () => {
+    const { app } = await seeded();
+    const { proposal: first } = await (
+      await propose(app, { path: ["name"], op: "set", proposedValue: "Grace", actor: "bob" })
+    ).json();
+    await app.request(
+      `/yorm/docs/Patient/p1/proposals/${first.id}/reject`,
+      json({ resolvedBy: "alice" }),
+    );
+    const { proposal: open } = await (
+      await propose(app, { path: ["name"], op: "set", proposedValue: "Hedy", actor: "bob" })
+    ).json();
+
+    // Proposers may not rewrite shared history.
+    expect(
+      (
+        await app.request("/yorm/docs/Patient/p1/proposals/clear-resolved?role=proposer", {
+          method: "POST",
+        })
+      ).status,
+    ).toBe(403);
+
+    const cleared = await app.request("/yorm/docs/Patient/p1/proposals/clear-resolved", {
+      method: "POST",
+    });
+    expect(cleared.status).toBe(200);
+    expect(await cleared.json()).toEqual({ cleared: 1 });
+    const remainingAfterClear = await (await app.request("/yorm/docs/Patient/p1/proposals")).json();
+    expect(remainingAfterClear.proposals.map((p: { id: string }) => p.id)).toEqual([open.id]);
+  });
+
   it("malformed proposal bodies yield 400", async () => {
     const { app } = await seeded();
     for (const body of [

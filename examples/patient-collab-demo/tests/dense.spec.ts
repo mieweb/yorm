@@ -104,6 +104,14 @@ test("Accept all mass-applies every open suggestion", async ({ browser }) => {
   await expect(panel.getByRole("listitem").filter({ hasText: email })).toContainText(
     t("review.status.accepted"),
   );
+
+  // Clearing resolved history deletes it from the document: the list and
+  // the yorm_proposal tracking rows empty out (a semantic CRDT delete).
+  await panel.getByRole("button", { name: t("review.clearResolvedLabel") }).click();
+  await expect(panel.getByRole("listitem")).toHaveCount(0);
+  await expect(panel.getByRole("button", { name: t("review.showResolvedLabel") })).toHaveCount(0);
+  await expect(proposalRow(editor, phoneId)).toHaveCount(0);
+  await expect(proposalRow(editor, emailId)).toHaveCount(0);
 });
 
 test("eSheet view toggle renders the same document", async ({ browser }) => {

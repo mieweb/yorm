@@ -314,5 +314,15 @@ export function createHttpRoutes(
     }, "proposals"),
   );
 
+  // Deleting resolved history rewrites the shared subtree for everyone, so
+  // it needs the "canonical" write scope (an editor/moderator action).
+  app.post(
+    "/docs/:type/:id/proposals/clear-resolved",
+    handle(async (c, session) => {
+      const cleared = session.proposals().clearResolved();
+      return c.json({ cleared });
+    }, "canonical"),
+  );
+
   return app;
 }
