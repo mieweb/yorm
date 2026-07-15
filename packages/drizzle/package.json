@@ -1,0 +1,37 @@
+{
+  "name": "@yorm/drizzle",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run --passWithNoTests --root ../.. packages/drizzle"
+  },
+  "dependencies": {
+    "@yorm/core": "workspace:*",
+    "drizzle-orm": "^0.36.4"
+  },
+  "peerDependencies": {
+    "better-sqlite3": ">=11"
+  },
+  "peerDependenciesMeta": {
+    "better-sqlite3": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "better-sqlite3": "^11.5.0",
+    "typescript": "^5.6.3"
+  }
+}

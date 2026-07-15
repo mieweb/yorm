@@ -58,15 +58,15 @@ Exit criteria: golden tests pass; core has zero runtime dependencies on Hono/Dri
 
 Goal: real objects live in a `Y.Doc`; changes trigger projection.
 
-- [ ] JSON codec: `read(doc)` / `write(doc, value)` mapping plain objects ⇄ Yjs structures
-- [ ] `memoryRuntime()`: owns active docs, update fan-out, transaction boundaries
-- [ ] Document versioning: increment on each persisted update
-- [ ] `createYorm({ runtime, documents, projections, mappings })` orchestrator (may live in core, decide during M1)
-- [ ] Inline projection mode only (queued/batch deferred)
-- [ ] **Projection trigger policy** — decouple Yjs update persistence (always immediate, collaboration stays live) from projection commits. Policies: `every-change`, `on-blur`, `idle` (configurable ms, default 30 s), `explicit`. Implemented as a scheduler in front of the projection engine: coalesce document versions, project the latest state once per trigger, checkpoint records the version range covered
-- [ ] Policy is per-document-session (client-selectable) with a server-side default and an optional server max-lag cap (safety flush so `explicit` can't defer forever)
-- [ ] Tests: doc mutation → materialized object → plan → store calls, in order
-- [ ] Tests: burst of typing under `idle` policy produces exactly one projection; `explicit` projects only on flush; pending-changes state is observable
+- [x] JSON codec: `read(doc)` / `write(doc, value)` mapping plain objects ⇄ Yjs structures
+- [x] `memoryRuntime()`: owns active docs, update fan-out, transaction boundaries
+- [x] Document versioning: increment on each persisted update
+- [x] `createYorm({ runtime, documents, projections, mappings })` orchestrator (may live in core, decide during M1)
+- [x] Inline projection mode only (queued/batch deferred)
+- [x] **Projection trigger policy** — decouple Yjs update persistence (always immediate, collaboration stays live) from projection commits. Policies: `every-change`, `on-blur`, `idle` (configurable ms, default 30 s), `explicit`. Implemented as a scheduler in front of the projection engine: coalesce document versions, project the latest state once per trigger, checkpoint records the version range covered
+- [x] Policy is per-document-session (client-selectable) with a server-side default and an optional server max-lag cap (safety flush so `explicit` can't defer forever)
+- [x] Tests: doc mutation → materialized object → plan → store calls, in order
+- [x] Tests: burst of typing under `idle` policy produces exactly one projection; `explicit` projects only on flush; pending-changes state is observable
 
 Exit criteria: an in-memory end-to-end (no DB) test edits a Y.Doc and observes correct projection-store calls.
 
@@ -99,14 +99,14 @@ Goal: one `DocumentStore` + `ProjectionStore` contract, proven on SQLite.
 
 ### 4a. Contract + shared conformance suite
 
-- [ ] `@yorm/drizzle`: `drizzleDocumentStore(db)`, `drizzleProjectionStore(db)` (dialect-agnostic where possible)
-- [ ] Reusable **adapter conformance test suite** (one test file parameterized over adapters): persist/load doc, apply plan transactionally, checkpoint advance, idempotent replay, reconciliation deletes — written to accept any adapter, so M9 backends only add wire-up
-- [ ] `yorm_document`, `yorm_update`, `yorm_projection_state` schema (outbox table deferred with reverse sync)
+- [x] `@yorm/drizzle`: `drizzleDocumentStore(db)`, `drizzleProjectionStore(db)` (dialect-agnostic where possible)
+- [x] Reusable **adapter conformance test suite** (one test file parameterized over adapters): persist/load doc, apply plan transactionally, checkpoint advance, idempotent replay, reconciliation deletes — written to accept any adapter, so M9 backends only add wire-up
+- [x] `yorm_document`, `yorm_update`, `yorm_projection_state` schema (outbox table deferred with reverse sync)
 
 ### 4b. SQLite wire-up
 
-- [ ] **SQLite** (`better-sqlite3`, Drizzle) — the default backend for the whole vertical slice
-- [ ] Backend selection plumbing (`YORM_DB=sqlite` for now) so M9 backends slot in without touching example code
+- [x] **SQLite** (`better-sqlite3`, Drizzle) — the default backend for the whole vertical slice
+- [x] Backend selection plumbing (`YORM_DB=sqlite` for now) so M9 backends slot in without touching example code
 
 Exit criteria: `pnpm test:adapters` passes on SQLite; conformance suite is adapter-parameterized.
 
