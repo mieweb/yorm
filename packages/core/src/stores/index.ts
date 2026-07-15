@@ -72,6 +72,13 @@ export interface ProjectionStore {
   getState(documentId: string, mappingName: string): Promise<ProjectionStateRecord | null>;
   /** Records a failed projection attempt without touching projection tables. */
   recordFailure(checkpoint: ProjectionCheckpoint, error: string): Promise<void>;
+  /**
+   * OPTIONAL: lists every projection state with `status: "error"` (the
+   * quarantine set that `retryFailedProjections` in `@yorm/yjs` re-runs).
+   * Backwards-compatible optional member — adapters that predate it keep
+   * working; helpers that need it must check for support.
+   */
+  listFailures?(): Promise<ProjectionStateRecord[]>;
 }
 
 /**

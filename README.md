@@ -18,6 +18,12 @@ The original object remains intact as the canonical aggregate. Relational tables
 
 YORM was created to make complex healthcare objects, especially FHIR resources, practical in collaborative and relational systems. The same architecture applies to any serialized object model, including JSON, XML, configuration documents, product catalogs, forms, workflow records, and custom domain messages.
 
+## Project status
+
+The **SQLite vertical slice is implemented and tested** ([PLAN.md](PLAN.md) milestones M0–M8): `@yorm/core` (mapping DSL + planner), `@yorm/yjs` (runtime, codecs, trigger policies, proposals, replay), `@yorm/hono` (REST + WebSocket plugin), `@yorm/drizzle` (SQLite stores + adapter conformance suite), `@yorm/fhir` (Patient codec + element identity), two runnable examples (the lossless Contacts ⇄ FHIR Patient POC and the two-browser collaborative Patient editor), suggestion mode, and mapping replay.
+
+The rest of this README is the design vision. Sections describing features that are not built yet are marked **(roadmap)** or **(deferred)** inline. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for an honest map of what exists versus the vision, and [PLAN.md](PLAN.md) for the milestone plan (M9, additional backends, is next).
+
 ---
 
 ## Why YORM exists
@@ -246,6 +252,8 @@ Examples:
 - Cloudflare Durable Objects for one logical room per document; or
 - a custom room or actor runtime.
 
+> Only the in-memory runtime is implemented today; the others are roadmap items behind the `Runtime` contract.
+
 ### Persistence driver
 
 The persistence driver stores canonical documents, updates, projection metadata, and relational rows.
@@ -258,6 +266,8 @@ Examples:
 - native PostgreSQL;
 - an object store plus SQL metadata; or
 - a custom adapter.
+
+> SQLite (better-sqlite3) is the implemented backend today; additional backends land with PLAN.md Milestone 9 via the adapter conformance suite.
 
 Hono is the transport and application layer. Yjs provides CRDT semantics. YORM connects the canonical object to relational projections.
 
@@ -273,7 +283,7 @@ A typical YORM application uses these packages:
 @yorm/hono       Hono routes, WebSocket transport, request context
 @yorm/drizzle    Drizzle document and projection stores
 @yorm/fhir       FHIR codecs, path helpers, stable element identity
-@yorm/cli        Mapping plans, replay, verification, and repair
+@yorm/cli        Mapping plans, replay, verification, and repair (roadmap)
 ```
 
 The core package does not require Hono or Drizzle. Adapters are intentionally replaceable.
@@ -486,7 +496,7 @@ Projection runs as part of the document commit path.
 
 Use this when relational reads must reflect a document change immediately and the mapping is small enough to remain inside the request latency budget.
 
-### Queued
+### Queued (roadmap)
 
 Document updates are persisted first and projection work is placed on a durable queue.
 
@@ -505,6 +515,8 @@ Use this for:
 - schema migration;
 - verification; or
 - disaster recovery.
+
+> Replay is implemented today as a library API — `replayProjections(yorm)` in `@yorm/yjs`. The `@yorm/cli` commands below are roadmap.
 
 ```bash
 pnpm yorm project --mapping fhir.Patient@2 --all --dry-run
@@ -568,6 +580,8 @@ This is the primary advantage of late-bound relationalization.
 ---
 
 ## Reverse synchronization
+
+> **Deferred** ([PLAN.md Decision #3](PLAN.md#decisions-finalized-2026-07-15)): reverse sync — the outbox, `editable(...)`, and database triggers described in this section — is not implemented in the current phase. The lossless thesis is proven via import plus forward projection round trips. This section documents the roadmap design.
 
 Some relational projections are editable. Others are not.
 
@@ -853,7 +867,7 @@ Built-in and custom codecs can support:
 
 Maps ordinary objects, arrays, and scalar values into Yjs structures.
 
-### XML
+### XML (roadmap)
 
 Preserves element order, attributes, namespaces, and repeated nodes according to the codec policy. Applications that require byte-for-byte XML round trips should retain the original payload alongside the materialized object.
 
@@ -922,7 +936,7 @@ processed_at
 error
 ```
 
-A deployment may store only snapshots, snapshots plus updates, or updates plus periodic compaction.
+A deployment may store only snapshots, snapshots plus updates, or updates plus periodic compaction. (`yorm_change_outbox` is roadmap — deferred with reverse synchronization.)
 
 The relational projections themselves live in application-owned tables rather than a generic entity-attribute-value store.
 
@@ -943,6 +957,8 @@ YORM can:
 - verify idempotency;
 - emit checksums; and
 - quarantine projection failures.
+
+> Implemented today: `replayProjections(yorm)` (full or per-type rebuild) and `retryFailedProjections(yorm)` (re-run quarantined failures) in `@yorm/yjs`. The CLI below is roadmap.
 
 ```bash
 pnpm yorm inspect Patient/patient-123

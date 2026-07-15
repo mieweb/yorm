@@ -147,3 +147,33 @@ rows.
 Server-side role enforcement (proposer vs. editor) lives in
 [@yorm/hono](../hono/README.md) (`onAuthorizeWrite` + the WebSocket
 canonical-write guard).
+
+## Replay & failed-projection retry (PLAN.md M8)
+
+Projections are derived state — they can be dropped and rebuilt from the
+stored canonical documents:
+
+```ts
+import { replayProjections, retryFailedProjections } from "@yorm/yjs";
+
+// Rebuild every projection (e.g. after dropping/recreating tables or adding
+// a mapping version). Plans carry origin "replay".
+const result = await replayProjections(yorm, {
+  documentType: "Patient", // optional filter; default: every mapped type
+  onError: "record-and-continue", // default; or "throw" to abort on failure
+});
+// → { attempted, succeeded, failed: [{ documentId, error }] }
+
+// Re-run only the quarantine set: documents whose projection state is
+// status "error". Requires the store's optional listFailures()
+// (implemented by @yorm/drizzle); throws a clear error otherwise.
+await retryFailedProjections(yorm);
+```
+
+`replayProjections` walks `DocumentStore.listDocuments` per mapped document
+type, loads each stored snapshot into a **fresh** `Y.Doc` (live runtime state
+is never consulted), materializes it via the document's codec — or via the
+proposals subtree for tracking mappings — and applies each plan via
+`ProjectionStore.applyPlan`. Failures are recorded with `recordFailure`
+(status `"error"`) and collected in the result; by default a failing document
+does not stop the run.

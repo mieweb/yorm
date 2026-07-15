@@ -145,6 +145,19 @@ function buildReconcile(op: ReconcileOperation, table: string): SQL {
   return sql`delete from ${sql.identifier(table)} where ${scopeCondition} and (${keyTuple}) not in (values ${keepRows})`;
 }
 
+/** Maps a `yorm_projection_state` row to the core record shape. */
+function toStateRecord(row: typeof yormProjectionState.$inferSelect): ProjectionStateRecord {
+  return {
+    documentId: row.documentId,
+    mappingName: row.mappingName,
+    mappingVersion: row.mappingVersion,
+    sourceDocumentVersion: row.sourceDocumentVersion,
+    status: row.status,
+    projectedAt: row.projectedAt,
+    error: row.error,
+  };
+}
+
 /**
  * Creates a {@link ProjectionStore} that applies plans to SQLite projection
  * tables and tracks checkpoints in `yorm_projection_state`.
@@ -210,16 +223,15 @@ export function drizzleProjectionStore<TSchema extends Record<string, unknown>>(
         )
         .limit(1);
       const row = rows[0];
-      if (!row) return null;
-      return {
-        documentId: row.documentId,
-        mappingName: row.mappingName,
-        mappingVersion: row.mappingVersion,
-        sourceDocumentVersion: row.sourceDocumentVersion,
-        status: row.status,
-        projectedAt: row.projectedAt,
-        error: row.error,
-      };
+      return row ? toStateRecord(row) : null;
+    },
+
+    async listFailures(): Promise<ProjectionStateRecord[]> {
+      const rows = await db
+        .select()
+        .from(yormProjectionState)
+        .where(eq(yormProjectionState.status, "error"));
+      return rows.map(toStateRecord);
     },
 
     async recordFailure(checkpoint: ProjectionCheckpoint, error: string): Promise<void> {

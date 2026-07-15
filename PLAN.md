@@ -1,5 +1,7 @@
 # YORM Implementation Plan
 
+> **Status (2026-07-15):** SQLite vertical complete — M0–M8 all done (165 vitest tests + 5 Playwright e2e green). M9 (additional backends) not started.
+
 > Working plan for the first buildout described in [README.md](README.md).
 > Three headline deliverables:
 >
@@ -89,7 +91,7 @@ Goal: `app.route("/yorm", createHonoYorm(yorm))` gives any Hono app a YORM serve
 - [x] No hard dependency on any DB package — the plugin only sees `Yorm` interfaces
 - [x] Tests: HTTP round trips; two WebSocket clients converge on one document; unauthorized access rejected
 
-Exit criteria: example Hono server in `examples/` runs, a `y-websocket` browser/Node client edits a Patient, rows appear in SQLite.
+Exit criteria: example Hono server in `examples/` runs, a `y-websocket` browser/Node client edits a Patient, rows appear in SQLite. _(Met by `examples/fhir-patient-contacts` — seed/demo/server scripts + tests.)_
 
 ---
 
@@ -223,10 +225,10 @@ Exit criteria: two-browser demo shows propose/accept/reject end to end with SQL 
 
 ## Milestone 8 — Hardening & docs (completes the SQLite vertical)
 
-- [ ] Mapping replay: `replay(mapping, { all })` used to rebuild the contacts projection from stored documents
-- [ ] Projection failure recording (checkpoint `status`/`error`) + retry
-- [ ] `docs/ARCHITECTURE.md`-style doc: what exists vs. README vision; adapter contract doc
-- [ ] Trim README claims that this phase doesn't implement (or mark as roadmap)
+- [x] Mapping replay: `replay(mapping, { all })` used to rebuild the contacts projection from stored documents — `replayProjections(yorm, { documentType?, onError? })` in `@yorm/yjs`; SQLite drop-and-rebuild proven in `examples/fhir-patient-contacts/test/replay.test.ts`
+- [x] Projection failure recording (checkpoint `status`/`error`) + retry — `recordFailure` on every failed plan, optional `ProjectionStore.listFailures()` (implemented by `@yorm/drizzle`), `retryFailedProjections(yorm)` re-runs the quarantine set
+- [x] `docs/ARCHITECTURE.md`-style doc: what exists vs. README vision; adapter contract doc
+- [x] Trim README claims that this phase doesn't implement (or mark as roadmap)
 
 ---
 

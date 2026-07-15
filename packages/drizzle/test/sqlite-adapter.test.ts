@@ -53,6 +53,45 @@ describe("createSqliteAdapter", () => {
   });
 });
 
+describe("drizzleProjectionStore.listFailures", () => {
+  it("lists only status-'error' states; a later successful plan clears them", async () => {
+    const adapter = createSqliteAdapter();
+    adapter.migrate();
+    const checkpoint = {
+      documentId: "c1",
+      documentType: "Contact",
+      mappingName: "contacts.Contact",
+      mappingVersion: 1,
+      sourceDocumentVersion: 3,
+    };
+
+    await adapter.projections.recordFailure(checkpoint, "kaboom");
+    const failures = await adapter.projections.listFailures!();
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({
+      documentId: "c1",
+      mappingName: "contacts.Contact",
+      mappingVersion: 1,
+      sourceDocumentVersion: 3,
+      status: "error",
+      error: "kaboom",
+    });
+
+    // A successful projection of the same (document, mapping) leaves quarantine.
+    await adapter.projections.applyPlan({
+      mapping: "contacts.Contact@1",
+      documentId: "c1",
+      documentType: "Contact",
+      documentVersion: 4,
+      origin: "replay",
+      operations: [],
+      checkpoint: { ...checkpoint, sourceDocumentVersion: 4 },
+    });
+    expect(await adapter.projections.listFailures!()).toEqual([]);
+    adapter.close();
+  });
+});
+
 describe("resolveBackend", () => {
   it("defaults to sqlite", () => {
     expect(resolveBackend()).toBe("sqlite");

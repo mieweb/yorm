@@ -4,6 +4,7 @@ import type {
   DocumentUpdate,
   ProjectionCheckpoint,
   ProjectionPlan,
+  ProjectionStateRecord,
   ProjectionStore,
   StoredDocument,
 } from "@yorm/core";
@@ -44,16 +45,38 @@ export function fakeDocumentStore(): FakeDocumentStore {
 export interface FakeProjectionStore extends ProjectionStore {
   plans: ProjectionPlan[];
   failures: Array<{ checkpoint: ProjectionCheckpoint; error: string }>;
+  /** Latest state per `${documentId}/${mappingName}` (ok on applyPlan, error on recordFailure). */
+  states: Map<string, ProjectionStateRecord>;
   failNextWith(error: Error): void;
+  listFailures(): Promise<ProjectionStateRecord[]>;
 }
 
 export function fakeProjectionStore(): FakeProjectionStore {
   const plans: ProjectionPlan[] = [];
   const failures: Array<{ checkpoint: ProjectionCheckpoint; error: string }> = [];
+  const states = new Map<string, ProjectionStateRecord>();
   let failWith: Error | null = null;
+  const stateKey = (documentId: string, mappingName: string): string =>
+    `${documentId}/${mappingName}`;
+  const record = (
+    checkpoint: ProjectionCheckpoint,
+    status: "ok" | "error",
+    error?: string,
+  ): void => {
+    states.set(stateKey(checkpoint.documentId, checkpoint.mappingName), {
+      documentId: checkpoint.documentId,
+      mappingName: checkpoint.mappingName,
+      mappingVersion: checkpoint.mappingVersion,
+      sourceDocumentVersion: checkpoint.sourceDocumentVersion,
+      status,
+      projectedAt: new Date(),
+      error: error ?? null,
+    });
+  };
   return {
     plans,
     failures,
+    states,
     failNextWith(error) {
       failWith = error;
     },
@@ -64,12 +87,17 @@ export function fakeProjectionStore(): FakeProjectionStore {
         throw error;
       }
       plans.push(plan);
+      record(plan.checkpoint, "ok");
     },
-    async getState() {
-      return null;
+    async getState(documentId, mappingName) {
+      return states.get(stateKey(documentId, mappingName)) ?? null;
     },
     async recordFailure(checkpoint, error) {
       failures.push({ checkpoint, error });
+      record(checkpoint, "error", error);
+    },
+    async listFailures() {
+      return [...states.values()].filter((state) => state.status === "error");
     },
   };
 }

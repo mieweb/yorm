@@ -183,10 +183,16 @@ describe("createYorm (end-to-end, no DB)", () => {
       pending: { from: 1, to: 1 },
       lastError: "kaboom",
     });
+    // The checkpoint is quarantined in the store (status "error")…
+    expect(await projections.listFailures()).toMatchObject([
+      { documentId: "c1", mappingName: "contacts.Contact", status: "error", error: "kaboom" },
+    ]);
 
     await session.signal("flush");
     expect(projections.plans).toHaveLength(1);
     expect(session.projectionState()).toEqual({ pending: null, version: 1, lastError: undefined });
+    // …and the successful retry clears it.
+    expect(await projections.listFailures()).toEqual([]);
     session.close();
   });
 

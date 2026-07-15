@@ -80,6 +80,9 @@ Implements the core `ProjectionStore` contract:
 - **`recordFailure(checkpoint, error)`** upserts the state row with
   `status: "error"` without touching projection tables; a later successful
   `applyPlan` recovers it to `ok`.
+- **`listFailures()`** (core's optional `ProjectionStore` member) returns every
+  state row with `status: "error"` — the quarantine set that
+  `retryFailedProjections` in `@yorm/yjs` re-runs.
 
 ## Adapter conformance suite (for M9 backends)
 
