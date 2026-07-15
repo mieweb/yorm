@@ -5,6 +5,7 @@
     { "path": "packages/yjs" },
     { "path": "packages/drizzle" },
     { "path": "packages/hono" },
-    { "path": "packages/fhir" }
+    { "path": "packages/fhir" },
+    { "path": "examples/fhir-patient-contacts" }
   ]
 }

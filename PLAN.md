@@ -124,32 +124,32 @@ Goal: demonstrate lossless sync between a phone-style contacts DB and a canonica
 
 ### 5b. Contacts schema (Apple AddressBook-inspired)
 
-- [ ] `contact` table — one row per person (first/last/middle/nickname, org, birthday, note, image ref…) ↔ `Patient.name`, `birthDate`, etc.
-- [ ] `contact_multivalue` table — `(contact_id, element_id, property, label, value)` generic rows for phones, emails, URLs ↔ `Patient.telecom` (label ↔ `use`, property ↔ `system`)
-- [ ] `contact_multivalue_entry` (structured multivalues) — addresses as key/value groups, Apple-style ↔ `Patient.address`
-- [ ] `contact_raw_property` sidecar — anything with no FHIR mapping (e.g. ringtone, social profiles) so the DB side is also lossless on reverse sync
+- [x] `contact` table — one row per person (first/last/middle/nickname, org, birthday, note, image ref…) ↔ `Patient.name`, `birthDate`, etc.
+- [x] `contact_multivalue` table — `(contact_id, element_id, property, label, value)` generic rows for phones, emails, URLs ↔ `Patient.telecom` (label ↔ `use`, property ↔ `system`)
+- [x] `contact_multivalue_entry` (structured multivalues) — addresses as key/value groups, Apple-style ↔ `Patient.address`
+- [x] `contact_raw_property` sidecar — anything with no FHIR mapping (e.g. ringtone, social profiles) so the DB side is also lossless on reverse sync
 
 ### 5c. Mapping `fhir.Patient@1`
 
-- [ ] Forward: Patient → contact tables (names, telecom, address, birthDate, photo ref)
-- [ ] Contacts **import codec**: seed a Patient document from an existing contacts DB (this is ingestion, not live reverse sync)
-- [ ] Unmapped-on-purpose FHIR fields stay only in the canonical document (prove "keep the object")
-- [ ] Unmapped contact fields → FHIR extensions under a documented URL namespace
-- [ ] `direction: "forward"` for this phase — live reverse sync (outbox, `editable(...)`, triggers) is **deferred** (see Out of scope)
+- [x] Forward: Patient → contact tables (names, telecom, address, birthDate, photo ref)
+- [x] Contacts **import codec**: seed a Patient document from an existing contacts DB (this is ingestion, not live reverse sync)
+- [x] Unmapped-on-purpose FHIR fields stay only in the canonical document (prove "keep the object")
+- [x] Unmapped contact fields → FHIR extensions under a documented URL namespace
+- [x] `direction: "forward"` for this phase — live reverse sync (outbox, `editable(...)`, triggers) is **deferred** (see Out of scope)
 
 ### 5d. Lossless verification (the actual thesis)
 
-- [ ] Round-trip test A: seed contacts DB → import to Patient → project back to fresh contacts DB → **row equality** (raw-property sidecar carries anything unmappable)
-- [ ] Round-trip test B: FHIR R4 Patient fixture → import path reconstructs Patient from projected rows + extensions → **deep-equal JSON** (modulo defined canonicalization)
-- [ ] Concurrent Yjs edit test: two clients edit the same Patient; projections converge without loss
-- [ ] Run 5d suite on SQLite (full backend matrix comes with M9)
+- [x] Round-trip test A: seed contacts DB → import to Patient → project back to fresh contacts DB → **row equality** (raw-property sidecar carries anything unmappable)
+- [x] Round-trip test B: FHIR R4 Patient fixture → import path reconstructs Patient from projected rows + extensions → **deep-equal JSON** (modulo defined canonicalization)
+- [x] Concurrent Yjs edit test: two clients edit the same Patient; projections converge without loss
+- [x] Run 5d suite on SQLite (full backend matrix comes with M9)
 
 ### 5e. Example app `examples/fhir-patient-contacts`
 
-- [ ] Hono server using `createHonoYorm` + SQLite by default
-- [ ] Seed script with a handful of realistic contacts + Patient fixtures
-- [ ] Small demo script (or minimal web page) showing: import contacts DB → Patient JSON appears; edit Patient over WebSocket → contact rows update
-- [ ] README for the example with a Mermaid data-flow diagram
+- [x] Hono server using `createHonoYorm` + SQLite by default
+- [x] Seed script with a handful of realistic contacts + Patient fixtures
+- [x] Small demo script (or minimal web page) showing: import contacts DB → Patient JSON appears; edit Patient over WebSocket → contact rows update
+- [x] README for the example with a Mermaid data-flow diagram
 
 Exit criteria: `pnpm --filter example-fhir-patient-contacts demo` shows the round trip live; lossless test suite green on SQLite.
 

@@ -1,0 +1,33 @@
+{
+  "name": "example-fhir-patient-contacts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run --passWithNoTests --root ../.. examples/fhir-patient-contacts",
+    "seed": "tsx src/seed.ts",
+    "demo": "tsx src/demo.ts",
+    "dev": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@hono/node-ws": "^1.0.4",
+    "@yorm/core": "workspace:*",
+    "@yorm/drizzle": "workspace:*",
+    "@yorm/fhir": "workspace:*",
+    "@yorm/hono": "workspace:*",
+    "@yorm/yjs": "workspace:*",
+    "better-sqlite3": "^11.5.0",
+    "drizzle-orm": "^0.36.4",
+    "hono": "^4.6.11",
+    "lib0": "^0.2.98",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.20"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
