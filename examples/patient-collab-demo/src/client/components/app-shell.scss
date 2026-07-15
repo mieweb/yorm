@@ -1,0 +1,79 @@
+/* App shell layout — header, two-pane main, visually hidden live region. */
+
+body {
+  margin: 0;
+  background: var(--mieweb-background);
+  color: var(--mieweb-foreground);
+  font-family: var(--mieweb-font-sans);
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--mieweb-border);
+  background: var(--mieweb-card);
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--mieweb-primary-700);
+}
+
+.app-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--mieweb-muted-foreground);
+}
+
+.app-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(20rem, 1fr) minmax(24rem, 1.4fr);
+  gap: 1.5rem;
+  padding: 1.5rem;
+  align-items: start;
+
+  @media (max-width: 60rem) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-lg);
+  background: var(--mieweb-card);
+  box-shadow: var(--mieweb-shadow-card);
+}
+
+/* Visually hidden but announced by screen readers. */
+.live-announcer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

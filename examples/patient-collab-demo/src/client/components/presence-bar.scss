@@ -1,0 +1,15 @@
+/* Presence avatars — one per connected awareness client. */
+
+.presence-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.presence-peer {
+  display: flex;
+  border-radius: var(--mieweb-radius-full);
+}

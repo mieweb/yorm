@@ -1,0 +1,12 @@
+/* Wrapper around the eSheet-rendered Patient form. */
+
+.patient-form-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--mieweb-muted-foreground);
+}
+
+.patient-form :focus-visible {
+  outline: 2px solid var(--mieweb-ring);
+  outline-offset: 2px;
+}

@@ -163,28 +163,28 @@ App: `examples/patient-collab-demo` — Vite + React + Zustand, served alongside
 
 ### 6a. Yjs ⇄ Zustand bridge
 
-- [ ] Zustand store backed by the Patient `Y.Doc` (y-websocket provider → `/yorm/ws/Patient/:id`): Yjs updates set store state; store actions run as Yjs transactions (single source of truth is the doc; DRY — no duplicated state shape)
-- [ ] Awareness → presence state in the store (who else is editing, cursors/field focus)
+- [x] Zustand store backed by the Patient `Y.Doc` (y-websocket provider → `/yorm/ws/Patient/:id`): Yjs updates set store state; store actions run as Yjs transactions (single source of truth is the doc; DRY — no duplicated state shape)
+- [x] Awareness → presence state in the store (who else is editing, cursors/field focus)
 
 ### 6b. FHIR editor via eSheet
 
-- [ ] Patient form definition using `@esheet/core` + `@esheet/fields` (eSheet already uses Zustand stores and @mieweb/ui field components; leverage its FHIR support capability)
-- [ ] Render with `<EsheetRenderer />` (builder not needed for the demo); wire eSheet responses ↔ the Yjs-backed Zustand store
-- [ ] Field-level merge behavior verified: two browsers editing different fields both win; same field converges via CRDT
+- [x] Patient form definition using `@esheet/core` + `@esheet/fields` (eSheet already uses Zustand stores and @mieweb/ui field components; leverage its FHIR support capability)
+- [x] Render with `<EsheetRenderer />` (builder not needed for the demo); wire eSheet responses ↔ the Yjs-backed Zustand store
+- [x] Field-level merge behavior verified: two browsers editing different fields both win; same field converges via CRDT
 
 ### 6c. UI shell with @mieweb/ui
 
-- [ ] Layout, header, presence avatars, connection status with `@mieweb/ui` components; SCSS uses `--mieweb-*` design tokens only
-- [ ] **Autosave policy dropdown** (`@mieweb/ui` select): "every change" / "on blur" / "idle – 30 second" / "explicit (save button)" — sets the session's projection trigger policy; Save button appears when `explicit` is selected; "unsaved projection changes" indicator driven by projection-state (label text externalized for i18n)
-- [ ] Live projection panel: shows the SQLite `contact` / `contact_multivalue` rows updating as the Patient is edited (the "rows are projections" money shot) — which also makes the policy visible: rows update per keystroke on `every-change`, only on save under `explicit`
-- [ ] Accessibility: ARIA labels on interactive elements, aria-live for presence/row updates
+- [x] Layout, header, presence avatars, connection status with `@mieweb/ui` components; SCSS uses `--mieweb-*` design tokens only
+- [x] **Autosave policy dropdown** (`@mieweb/ui` select): "every change" / "on blur" / "idle – 30 second" / "explicit (save button)" — sets the session's projection trigger policy; Save button appears when `explicit` is selected; "unsaved projection changes" indicator driven by projection-state (label text externalized for i18n)
+- [x] Live projection panel: shows the SQLite `contact` / `contact_multivalue` rows updating as the Patient is edited (the "rows are projections" money shot) — which also makes the policy visible: rows update per keystroke on `every-change`, only on save under `explicit`
+- [x] Accessibility: ARIA labels on interactive elements, aria-live for presence/row updates
 
 ### 6d. Demo verification
 
-- [ ] Playwright test: two browser contexts edit the same Patient, both converge, projection rows update
-- [ ] Playwright test: under `on-blur` and `explicit` policies, both browsers still converge live over Yjs while SQL rows update only at the policy trigger
-- [ ] `pnpm --filter patient-collab-demo dev` one-command startup (server + client)
-- [ ] Example README with screenshot/clip and Mermaid data-flow diagram
+- [x] Playwright test: two browser contexts edit the same Patient, both converge, projection rows update
+- [x] Playwright test: under `on-blur` and `explicit` policies, both browsers still converge live over Yjs while SQL rows update only at the policy trigger
+- [x] `pnpm --filter patient-collab-demo dev` one-command startup (server + client)
+- [x] Example README with screenshot/clip and Mermaid data-flow diagram
 
 Exit criteria: open two browser windows, edit name/phone in each, watch both UIs converge and the SQL rows update live.
 

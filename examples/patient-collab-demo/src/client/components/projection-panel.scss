@@ -1,0 +1,47 @@
+/* Live SQLite projection panel — the contact tables, updating as the
+   projection engine commits. */
+
+.projection-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-lg);
+  background: var(--mieweb-card);
+  box-shadow: var(--mieweb-shadow-card);
+  overflow-x: auto;
+}
+
+.projection-title {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--mieweb-primary-700);
+}
+
+.projection-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--mieweb-muted-foreground);
+}
+
+.projection-table-name {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.9rem;
+
+  code {
+    font-family: var(--mieweb-font-mono);
+    color: var(--mieweb-primary-600);
+  }
+}
+
+.projection-table-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--mieweb-muted-foreground);
+}
+
+.projection-table code {
+  font-family: var(--mieweb-font-mono);
+  font-size: 0.75rem;
+}
