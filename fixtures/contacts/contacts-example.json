@@ -1,0 +1,41 @@
+{
+  "contacts": [
+    {
+      "id": "c-100",
+      "first": "Peter",
+      "middle": "James",
+      "last": "Chalmers",
+      "nickname": "Jim",
+      "organization": "Acme Health",
+      "birthday": "1974-12-25",
+      "note": "Prefers email contact.",
+      "multivalues": [
+        { "elementId": "t1", "property": "phone", "label": "work", "value": "(03) 5555 6473" },
+        {
+          "elementId": "t2",
+          "property": "email",
+          "label": "home",
+          "value": "peter.chalmers@example.org"
+        }
+      ],
+      "multivalueEntries": [
+        {
+          "elementId": "a1",
+          "property": "address",
+          "label": "home",
+          "entries": {
+            "street": "534 Erewhon St",
+            "city": "PleasantVille",
+            "state": "Vic",
+            "zip": "3999",
+            "country": "AUS"
+          }
+        }
+      ],
+      "rawProperties": [
+        { "property": "ringtone", "value": "Opening" },
+        { "property": "socialProfile.twitter", "value": "@pchalmers" }
+      ]
+    }
+  ]
+}

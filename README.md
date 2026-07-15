@@ -2,7 +2,7 @@
 
 ## Yjs Object-Relational Mapper
 
-*Yet another Object-Relational Mapper.*
+_Yet another Object-Relational Mapper._
 
 > **Keep the object. Project the rows.**
 >
@@ -295,13 +295,7 @@ Add the database driver used by your application, such as `pg`, `postgres`, `bet
 The example below uses Drizzle and PostgreSQL.
 
 ```ts
-import {
-  boolean,
-  date,
-  pgTable,
-  primaryKey,
-  text,
-} from "drizzle-orm/pg-core";
+import { boolean, date, pgTable, primaryKey, text } from "drizzle-orm/pg-core";
 
 export const patients = pgTable("patient", {
   id: text("id").primaryKey(),
@@ -334,20 +328,10 @@ Projection tables should use stable logical keys. Array position is not a stable
 ### 3. Define a mapping
 
 ```ts
-import {
-  defineMapping,
-  many,
-  one,
-} from "@yorm/core";
-import {
-  fhirElementId,
-  fhirResource,
-} from "@yorm/fhir";
+import { defineMapping, many, one } from "@yorm/core";
+import { fhirElementId, fhirResource } from "@yorm/fhir";
 
-import {
-  patientIdentifiers,
-  patients,
-} from "./schema";
+import { patientIdentifiers, patients } from "./schema";
 
 export const patientMapping = defineMapping({
   name: "fhir.Patient",
@@ -413,9 +397,7 @@ const yorm = createYorm({
   documents: drizzleDocumentStore(db),
   projections: drizzleProjectionStore(db),
 
-  mappings: [
-    patientMapping,
-  ],
+  mappings: [patientMapping],
 });
 
 const app = new Hono();
@@ -435,11 +417,7 @@ import { WebsocketProvider } from "y-websocket";
 
 const doc = new Y.Doc();
 
-const provider = new WebsocketProvider(
-  "wss://api.example.com/yorm/ws",
-  "Patient/patient-123",
-  doc,
-);
+const provider = new WebsocketProvider("wss://api.example.com/yorm/ws", "Patient/patient-123", doc);
 
 const patient = doc.getMap("resource");
 
@@ -544,12 +522,12 @@ YORM therefore separates the two:
 - Yjs updates are always persisted immediately. Collaboration, offline merge, and document versioning are never delayed.
 - The projection commit is gated by a per-session trigger policy.
 
-| Policy | Projection runs |
-|---|---|
-| `every-change` | After every persisted document change. |
-| `on-blur` | When the client signals that a field or form lost focus. |
-| `idle` | After a configurable quiet period (default 30 seconds). |
-| `explicit` | Only when the client requests a flush, such as a Save button. |
+| Policy         | Projection runs                                               |
+| -------------- | ------------------------------------------------------------- |
+| `every-change` | After every persisted document change.                        |
+| `on-blur`      | When the client signals that a field or form lost focus.      |
+| `idle`         | After a configurable quiet period (default 30 seconds).       |
+| `explicit`     | Only when the client requests a flush, such as a Save button. |
 
 While a policy defers projection, changes coalesce. When the trigger fires, YORM projects the latest document state once and the checkpoint records the document version range covered. Typing a sentence into a text field under `idle` produces one projection transaction, not one per character.
 
@@ -608,12 +586,12 @@ defineMapping({
 
 Supported projection directions are:
 
-| Direction | Meaning |
-|---|---|
-| `forward` | Document changes update relational rows. SQL rows are read-only projections. |
-| `bidirectional` | Approved relational changes can become semantic document transactions. |
-| `computed` | The table contains derived or aggregate values and is never mapped backward. |
-| `external` | Selected values are owned by another system and imported into the document under explicit rules. |
+| Direction       | Meaning                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------ |
+| `forward`       | Document changes update relational rows. SQL rows are read-only projections.                     |
+| `bidirectional` | Approved relational changes can become semantic document transactions.                           |
+| `computed`      | The table contains derived or aggregate values and is never mapped backward.                     |
+| `external`      | Selected values are owned by another system and imported into the document under explicit rules. |
 
 ### Why triggers do not rewrite the blob
 

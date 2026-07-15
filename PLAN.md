@@ -27,12 +27,12 @@ Status legend: `[ ]` todo · `[x]` done · `[~]` in progress
 
 Goal: a pnpm monorepo where `pnpm install && pnpm build && pnpm test` works.
 
-- [ ] pnpm workspace: `packages/*`, `examples/*`, `fixtures/*` (matches README repository layout)
-- [ ] TypeScript project references, shared `tsconfig.base.json`, ESM output
-- [ ] Vitest at the root, per-package test scripts
-- [ ] Lint/format (eslint + prettier) with root scripts
-- [ ] CI workflow that is a thin wrapper over `pnpm build && pnpm lint && pnpm test`
-- [ ] Fixture folders: `fixtures/fhir-r4/patient/*.json`, `fixtures/contacts/*.json`
+- [x] pnpm workspace: `packages/*`, `examples/*`, `fixtures/*` (matches README repository layout)
+- [x] TypeScript project references, shared `tsconfig.base.json`, ESM output
+- [x] Vitest at the root, per-package test scripts
+- [x] Lint/format (eslint + prettier) with root scripts
+- [x] CI workflow that is a thin wrapper over `pnpm build && pnpm lint && pnpm test`
+- [x] Fixture folders: `fixtures/fhir-r4/patient/*.json`, `fixtures/contacts/*.json`
 
 Exit criteria: green CI on an empty-but-wired monorepo.
 
@@ -157,7 +157,7 @@ Exit criteria: `pnpm --filter example-fhir-patient-contacts demo` shows the roun
 
 ## Milestone 6 — Collaborative Patient editor demo ⭐ deliverable 3
 
-Goal: two browsers editing the same FHIR Patient live — something a person can *see* work.
+Goal: two browsers editing the same FHIR Patient live — something a person can _see_ work.
 
 App: `examples/patient-collab-demo` — Vite + React + Zustand, served alongside the Hono YORM server from M3/M5.
 

@@ -1,0 +1,52 @@
+{
+  "resourceType": "Patient",
+  "id": "example",
+  "identifier": [
+    {
+      "use": "usual",
+      "system": "urn:oid:1.2.36.146.595.217.0.1",
+      "value": "12345"
+    }
+  ],
+  "active": true,
+  "name": [
+    {
+      "id": "n1",
+      "use": "official",
+      "family": "Chalmers",
+      "given": ["Peter", "James"]
+    },
+    {
+      "id": "n2",
+      "use": "usual",
+      "given": ["Jim"]
+    }
+  ],
+  "telecom": [
+    {
+      "id": "t1",
+      "system": "phone",
+      "value": "(03) 5555 6473",
+      "use": "work"
+    },
+    {
+      "id": "t2",
+      "system": "email",
+      "value": "peter.chalmers@example.org",
+      "use": "home"
+    }
+  ],
+  "gender": "male",
+  "birthDate": "1974-12-25",
+  "address": [
+    {
+      "id": "a1",
+      "use": "home",
+      "line": ["534 Erewhon St"],
+      "city": "PleasantVille",
+      "state": "Vic",
+      "postalCode": "3999",
+      "country": "AUS"
+    }
+  ]
+}

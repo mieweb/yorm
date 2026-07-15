@@ -137,3 +137,9 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# YORM additions
+.DS_Store
+*.sqlite
+*.sqlite-journal
+*.db
