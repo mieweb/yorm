@@ -12,6 +12,7 @@ policy-driven scheduler that projects the latest state through the
 | `codecs/json.ts`      | `jsonCodec()` — plain JSON ⇄ Yjs structures; `applyJsonPatchLike()` for partial semantic updates |
 | `scheduler/policy.ts` | `ProjectionScheduler` — coalesces changes, triggers projection per policy                        |
 | `runtime/memory.ts`   | `memoryRuntime()` — owns live `Y.Doc`s, persists updates, fans them out                          |
+| `proposals/index.ts`  | `proposalsApi()` — suggestion mode (PLAN.md M7); `proposalTrackingMapping()`                     |
 | `createYorm.ts`       | orchestrator wiring runtime + stores + codecs + mappings into sessions                           |
 
 ## JSON codec
@@ -78,3 +79,71 @@ with `recordFailure` and surfaced via `projectionState().lastError`). The plan
 
 v1 simplification: the scheduler is per **document**, shared by all sessions
 on it — `setPolicy` from any session switches the document's policy.
+
+## Proposed changes (suggestion mode)
+
+PLAN.md Milestone 7 / decision #11. Proposals are semantic change intents
+(`ChangeIntent`) stored in the **same `Y.Doc`** under a **separate subtree**:
+`doc.getMap("yorm:proposals")`, a map of proposal id → record. They sync,
+merge, and survive offline like any CRDT state — but the codec materializes
+only the canonical subtree (`doc.getMap("resource")`), so the projection
+engine (and therefore SQL) never sees an unaccepted change.
+
+```ts
+const api = session.proposals(); // or proposalsApi(doc, opts) standalone
+
+const intent = api.propose({
+  path: ["telecom", 0, "value"],
+  op: "set", // "set" | "insert" | "remove"
+  proposedValue: "555-0100",
+  actor: "dr-bob",
+}); // canonical untouched; baseValue captured from current canonical state
+
+const result = api.accept(intent.id, "dr-alice");
+if (result.conflict) {
+  // canonical moved since the proposal was made — nothing was applied;
+  // caller decides: api.acceptAnyway(...) / api.reject(...) / re-propose
+  console.log("current value is now", result.currentValue);
+}
+```
+
+Lifecycle & semantics:
+
+- **propose** — one Yjs transaction on the proposals subtree only. Captures
+  `baseValue` from the current canonical value at `path` (for `insert`: the
+  element currently at the insertion index). Older still-`proposed` intents
+  on the same path are marked `superseded` in the same transaction.
+- **accept** — applies the intent to the canonical subtree **and** marks the
+  proposal `accepted` (status, `resolvedBy`, `resolvedAt`) in **one atomic
+  Yjs transaction**; projection then fires per the normal trigger policy.
+- **Stale handling** — if the current canonical value at `path` no longer
+  deep-equals `baseValue`, `accept` returns `{ conflict: true, currentValue }`
+  without applying or resolving anything. `acceptAnyway` skips the check.
+- **reject** — marks `rejected`; the canonical subtree is untouched.
+- **withdraw** — deletes a still-`proposed` intent from the subtree.
+- **updateProposal** — amends a still-`proposed` intent's `proposedValue`.
+- `list({ status? })` returns intents sorted by `createdAt` then id;
+  `subscribe(listener)` fires on any proposals-subtree change.
+
+Op semantics on accept: `set` writes `proposedValue` at `path`; `remove`
+deletes at `path`; `insert` inserts into the array at `path` (the last
+segment is the index).
+
+### Tracking projection (`yorm_proposal`)
+
+`proposalTrackingMapping(documentType, table = "yorm_proposal")` is a
+forward-only `@yorm/core` mapping (name `yorm.proposals`) that projects the
+proposals subtree into rows — key `{ document_id, proposal_id }`, values
+`{ path, op, status, actor, resolved_by, resolved_at, created_at }`, scoped
+by `{ document_id }` — so DBAs and reports can see open suggestions.
+
+Because the codec only reads the canonical subtree, `createYorm` special-cases
+mappings recognized by `isProposalTrackingMapping` (well-known name prefix
+`yorm.proposals`): their mapping context object is the materialized proposals
+list (`readProposals(doc)`) instead of the codec output. Pending proposals
+appear in `yorm_proposal` rows while **never** appearing in canonical-mapping
+rows.
+
+Server-side role enforcement (proposer vs. editor) lives in
+[@yorm/hono](../hono/README.md) (`onAuthorizeWrite` + the WebSocket
+canonical-write guard).

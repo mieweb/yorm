@@ -12,11 +12,13 @@ import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import * as awarenessProtocol from "y-protocols/awareness";
 import * as syncProtocol from "y-protocols/sync";
+import * as Y from "yjs";
+import { DEFAULT_ROOT_KEY } from "@yorm/yjs";
 import type { DocumentSession } from "@yorm/yjs";
 
-import type { HonoYormOptions } from "../index.js";
+import type { HonoYormOptions, WriteScope } from "../index.js";
 import type { SessionCache } from "../shared.js";
-import { authorize, policyFromQuery } from "../shared.js";
+import { authorize, authorizeWrite, policyFromQuery } from "../shared.js";
 
 /** y-websocket wire message types. */
 const MESSAGE_SYNC = 0;
@@ -83,6 +85,53 @@ function toUint8Array(data: WSMessageReceive): Uint8Array | null {
   }
   if (data instanceof ArrayBuffer) {
     return new Uint8Array(data);
+  }
+  return null;
+}
+
+/**
+ * Proposer-role canonical-write guard (PLAN.md M7, decision #11).
+ *
+ * Returns `true` when applying `update` would change the canonical subtree
+ * (`doc.getMap(rootKey)`): the live doc's state is replayed onto a scratch
+ * `Y.Doc`, the update is applied there, and the canonical subtree's JSON is
+ * compared before/after. The live doc is never touched.
+ *
+ * v1 tradeoff (documented): CRDT-level per-subtree write refusal is complex,
+ * so proposer connections pay an encode + double-apply on a scratch doc per
+ * incoming sync update (editor connections are unaffected). A violating
+ * update is refused **as a whole** — it is not applied and the socket is
+ * closed with 1008 — even if it also carried proposals-subtree changes.
+ * Refusing without applying keeps the server doc clean, but a proposer that
+ * made offline canonical edits will be disconnected on re-sync; partial
+ * revert of mixed updates is a future extension.
+ */
+export function guardCanonicalWrites(
+  doc: Y.Doc,
+  update: Uint8Array,
+  rootKey: string = DEFAULT_ROOT_KEY,
+): boolean {
+  const scratch = new Y.Doc();
+  try {
+    Y.applyUpdate(scratch, Y.encodeStateAsUpdate(doc));
+    const before = JSON.stringify(scratch.getMap(rootKey).toJSON());
+    Y.applyUpdate(scratch, update);
+    return JSON.stringify(scratch.getMap(rootKey).toJSON()) !== before;
+  } finally {
+    scratch.destroy();
+  }
+}
+
+/**
+ * Extracts the doc update payload from a sync message when it carries one
+ * (SyncStep2 / Update); `null` for SyncStep1 (which never mutates the doc).
+ */
+function updatePayloadOf(data: Uint8Array): Uint8Array | null {
+  const decoder = decoding.createDecoder(data);
+  decoding.readVarUint(decoder); // MESSAGE_SYNC, checked by the caller
+  const subType = decoding.readVarUint(decoder);
+  if (subType === syncProtocol.messageYjsSyncStep2 || subType === syncProtocol.messageYjsUpdate) {
+    return decoding.readVarUint8Array(decoder);
   }
   return null;
 }
@@ -193,13 +242,20 @@ export function createWebSocketRoutes(
     upgradeWebSocket(async (c): Promise<WSEvents<unknown>> => {
       const type = c.req.param("type") ?? "";
       const id = c.req.param("id") ?? "";
-      if (!(await authorize(c, options, type, id))) {
+      // ?role=proposer connections may only write the proposals subtree;
+      // everything else is a canonical writer (v1: no read-only sockets).
+      const scope: WriteScope = c.req.query("role") === "proposer" ? "proposals" : "canonical";
+      if (
+        !(await authorize(c, options, type, id)) ||
+        !(await authorizeWrite(c, options, type, id, scope))
+      ) {
         return {
           onOpen(_evt, ws) {
             ws.close(1008, "forbidden");
           },
         };
       }
+      const guardCanonical = scope === "proposals";
       const room = await getRoom(type, id);
       const policy = policyFromQuery(c.req.query("policy"), c.req.query("idleMs"));
       return {
@@ -223,6 +279,14 @@ export function createWebSocketRoutes(
           const decoder = decoding.createDecoder(data);
           switch (decoding.readVarUint(decoder)) {
             case MESSAGE_SYNC: {
+              if (guardCanonical) {
+                const payload = updatePayloadOf(data);
+                if (payload !== null && guardCanonicalWrites(room.session.doc, payload)) {
+                  // Refuse the update entirely (never applied server-side).
+                  ws.close(1008, "proposer role: canonical writes are forbidden");
+                  return;
+                }
+              }
               const encoder = encoding.createEncoder();
               encoding.writeVarUint(encoder, MESSAGE_SYNC);
               // Applying the message mutates the doc; fan-out is synchronous,

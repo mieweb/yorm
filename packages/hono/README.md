@@ -55,6 +55,29 @@ Malformed bodies yield `400`; unexpected errors yield `500 { error }`.
 | POST   | `/docs/:type/:id/signal`           | `{ kind: "blur" \| "flush" }`           | `{ version, pending }`                          |
 | POST   | `/docs/:type/:id/policy`           | a `ProjectionTriggerPolicy`             | `204`                                           |
 
+### Proposal routes (PLAN.md M7, suggestion mode)
+
+Proposals are semantic change intents in the document's `yorm:proposals`
+subtree — see [@yorm/yjs proposals](../yjs/README.md#proposed-changes-suggestion-mode).
+Each write route also runs `onAuthorizeWrite(ctx, docRef, scope)` with the
+scope shown (`403` on refusal). Accepting **writes canonical state**, so the
+accept routes require the `"canonical"` scope.
+
+| Method | Path                                           | Scope       | Body                                  | Response                                                  |
+| ------ | ---------------------------------------------- | ----------- | ------------------------------------- | --------------------------------------------------------- |
+| GET    | `/docs/:type/:id/proposals`                    | —           | — (`?status=` filter)                 | `{ proposals: ChangeIntent[] }`                           |
+| POST   | `/docs/:type/:id/proposals`                    | `proposals` | `{ path, op, proposedValue?, actor }` | `201 { proposal }`                                        |
+| POST   | `/docs/:type/:id/proposals/:pid/accept`        | `canonical` | `{ resolvedBy? }`                     | `{ conflict: false, version }`, stale → `409` (see below) |
+| POST   | `/docs/:type/:id/proposals/:pid/accept-anyway` | `canonical` | `{ resolvedBy? }`                     | `{ conflict: false, version }`                            |
+| POST   | `/docs/:type/:id/proposals/:pid/reject`        | `canonical` | `{ resolvedBy? }`                     | `{ ok: true }`                                            |
+| DELETE | `/docs/:type/:id/proposals/:pid`               | `proposals` | —                                     | `204` (withdraw)                                          |
+
+A **stale accept** (the canonical value moved since the proposal was made)
+returns `409 { conflict: true, currentValue }` without applying or resolving
+anything — the caller decides (accept-anyway / reject / re-propose). Unknown
+proposal ids yield `404`; operating on an already-resolved proposal yields
+`409`.
+
 Notes (v1 simplifications, by design):
 
 - **Not found** is defined pragmatically: no stored snapshot **and**
@@ -84,6 +107,29 @@ Query params:
   policy on open (see [PLAN.md decision #10](../../PLAN.md)); invalid values
   are ignored.
 - `?idleMs=<ms>` — debounce for `policy=idle`.
+- `?role=proposer` — the connection may only write the **proposals** subtree;
+  see “Roles & the canonical-write guard” below.
+
+### Roles & the canonical-write guard (PLAN.md M7)
+
+A WebSocket connection's write scope is chosen at upgrade time: `?role=proposer`
+connections are authorized via `onAuthorizeWrite(ctx, docRef, "proposals")`,
+all others via `onAuthorizeWrite(ctx, docRef, "canonical")` (refusal closes
+with `1008`; v1 has no read-only sockets).
+
+On **proposer** connections, incoming sync updates that would modify the
+canonical root map are refused. Full CRDT-level per-subtree write refusal is
+complex, so v1 validates each incoming update before applying it
+(`guardCanonicalWrites`): the live doc's state is replayed onto a scratch
+`Y.Doc`, the update is applied there, and the canonical subtree's JSON is
+compared before/after. If it changed, the update is **not applied** and the
+socket is closed with `1008`; proposals-subtree updates flow normally.
+
+Tradeoffs (documented, v1): proposer connections pay an encode + double-apply
+on a scratch doc per incoming update (editor connections are unaffected); a
+mixed update that touches both subtrees is refused as a whole; a proposer
+that made offline canonical edits is disconnected on re-sync. Partial revert
+of mixed updates is a future extension.
 
 ```mermaid
 sequenceDiagram
@@ -115,6 +161,11 @@ cached session stays open so projections continue).
 ```ts
 interface HonoYormOptions {
   onAuthorize?: (ctx: Context, docRef: { type: string; id: string }) => boolean | Promise<boolean>;
+  onAuthorizeWrite?: (
+    ctx: Context,
+    docRef: { type: string; id: string },
+    scope: "canonical" | "proposals",
+  ) => boolean | Promise<boolean>; // per-subtree write rules (PLAN.md M7)
   defaultPolicy?: ProjectionTriggerPolicy; // applied when a session is opened
   maxLagMs?: number; // plugin-level safety flush cap for deferred policies
   upgradeWebSocket?: UpgradeWebSocket; // lets createHonoYorm mount /ws itself

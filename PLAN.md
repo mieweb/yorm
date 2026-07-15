@@ -198,17 +198,17 @@ Design: proposals live in the **same Y.Doc, separate subtree** (`yorm:proposals`
 
 ### 7a. Engine (`@yorm/yjs` + `@yorm/core`)
 
-- [ ] Proposal model: `ChangeIntent { id, path, op (set/insert/remove), proposedValue, baseValue, baseDocumentVersion, actor, status: proposed|accepted|rejected|superseded, resolvedBy, resolvedAt }`
-- [ ] Propose API: create/update/withdraw a proposal as a Yjs transaction on the proposals subtree (canonical resource untouched)
-- [ ] Accept: apply the intent to the canonical subtree in one semantic Yjs transaction + mark proposal `accepted` (atomically, same transaction); projection then fires per the autosave policy
-- [ ] Reject: mark `rejected`, canonical state untouched
-- [ ] Stale handling: if the canonical value changed since `baseDocumentVersion`, surface the conflict (accept-anyway / reject / re-propose) — domain decision left to the caller
-- [ ] Role hook: writer vs. proposer capability enforced server-side (M3 `onAuthorize` extended to per-subtree write rules — proposers' direct canonical edits are refused)
+- [x] Proposal model: `ChangeIntent { id, path, op (set/insert/remove), proposedValue, baseValue, baseDocumentVersion, actor, status: proposed|accepted|rejected|superseded, resolvedBy, resolvedAt }`
+- [x] Propose API: create/update/withdraw a proposal as a Yjs transaction on the proposals subtree (canonical resource untouched)
+- [x] Accept: apply the intent to the canonical subtree in one semantic Yjs transaction + mark proposal `accepted` (atomically, same transaction); projection then fires per the autosave policy
+- [x] Reject: mark `rejected`, canonical state untouched
+- [x] Stale handling: if the canonical value changed since `baseDocumentVersion`, surface the conflict (accept-anyway / reject / re-propose) — domain decision left to the caller
+- [x] Role hook: writer vs. proposer capability enforced server-side (M3 `onAuthorize` extended to per-subtree write rules — proposers' direct canonical edits are refused)
 
 ### 7b. Projection & tracking
 
-- [ ] Canonical projection unchanged — only accepted state reaches `contact*` tables (this falls out of the codec reading only the canonical subtree; add a test proving pending proposals never appear in rows)
-- [ ] Optional `yorm_proposal` **forward-only projection table** (proposal id, document, path, status, actor, timestamps) so DBAs/reports can see open proposals — dogfoods the mapping engine on YORM's own metadata
+- [x] Canonical projection unchanged — only accepted state reaches `contact*` tables (this falls out of the codec reading only the canonical subtree; add a test proving pending proposals never appear in rows)
+- [x] Optional `yorm_proposal` **forward-only projection table** (proposal id, document, path, status, actor, timestamps) so DBAs/reports can see open proposals — dogfoods the mapping engine on YORM's own metadata
 
 ### 7c. Demo integration (`patient-collab-demo`)
 

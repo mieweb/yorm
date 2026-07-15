@@ -9,4 +9,5 @@ export const YORM_YJS_VERSION = "0.1.0";
 export * from "./codecs/json.js";
 export * from "./scheduler/policy.js";
 export * from "./runtime/memory.js";
+export * from "./proposals/index.js";
 export * from "./createYorm.js";

@@ -234,3 +234,176 @@ describe("@yorm/hono HTTP routes", () => {
     expect(state.checkpoints).toEqual([]);
   });
 });
+
+describe("@yorm/hono proposal routes (PLAN.md M7)", () => {
+  /** role from `?role=`; proposers may only write the proposals subtree. */
+  const roleOptions: HonoYormOptions = {
+    onAuthorizeWrite: (ctx, _docRef, scope) =>
+      (ctx.req.query("role") ?? "editor") === "proposer" ? scope === "proposals" : true,
+  };
+
+  const propose = (app: Hono, body: unknown, query = "?role=proposer") =>
+    app.request(`/yorm/docs/Patient/p1/proposals${query}`, json(body));
+
+  async function seeded(options: HonoYormOptions = roleOptions) {
+    const made = makeApp(options);
+    await made.app.request("/yorm/docs/Patient/p1", json({ name: "Ada" }, "PUT"));
+    return made;
+  }
+
+  it("a proposer can POST proposals but direct canonical writes are 403", async () => {
+    const { app } = await seeded();
+    const created = await propose(app, {
+      path: ["name"],
+      op: "set",
+      proposedValue: "Grace",
+      actor: "bob",
+    });
+    expect(created.status).toBe(201);
+    const { proposal } = await created.json();
+    expect(proposal).toMatchObject({
+      path: ["name"],
+      op: "set",
+      proposedValue: "Grace",
+      baseValue: "Ada",
+      actor: "bob",
+      status: "proposed",
+    });
+
+    // Canonical writes from the proposer role are refused…
+    expect(
+      (await app.request("/yorm/docs/Patient/p1?role=proposer", json({ name: "x" }, "PUT"))).status,
+    ).toBe(403);
+    expect(
+      (
+        await app.request(
+          "/yorm/docs/Patient/p1?role=proposer",
+          json({ path: ["name"], value: "x" }, "PATCH"),
+        )
+      ).status,
+    ).toBe(403);
+    // …including accepting (accept writes canonical state).
+    expect(
+      (
+        await app.request(`/yorm/docs/Patient/p1/proposals/${proposal.id}/accept?role=proposer`, {
+          method: "POST",
+        })
+      ).status,
+    ).toBe(403);
+    // The document is unchanged.
+    expect((await (await app.request("/yorm/docs/Patient/p1")).json()).object).toEqual({
+      name: "Ada",
+    });
+  });
+
+  it("an editor accepts via REST: canonical updates and the proposal resolves", async () => {
+    const { app, projections } = await seeded();
+    const { proposal } = await (
+      await propose(app, { path: ["name"], op: "set", proposedValue: "Grace", actor: "bob" })
+    ).json();
+
+    const accept = await app.request(
+      `/yorm/docs/Patient/p1/proposals/${proposal.id}/accept`,
+      json({ resolvedBy: "alice" }),
+    );
+    expect(accept.status).toBe(200);
+    expect(await accept.json()).toMatchObject({ conflict: false });
+
+    expect((await (await app.request("/yorm/docs/Patient/p1")).json()).object).toEqual({
+      name: "Grace",
+    });
+    const list = await (await app.request("/yorm/docs/Patient/p1/proposals")).json();
+    expect(list.proposals[0]).toMatchObject({ status: "accepted", resolvedBy: "alice" });
+    await until(
+      () =>
+        projections.plans.some((plan) =>
+          plan.operations.some((op) => op.kind === "upsert" && op.values["name"] === "Grace"),
+        ),
+      "accepted value projected",
+    );
+  });
+
+  it("a stale accept yields 409 with the current value", async () => {
+    const { app } = await seeded();
+    const { proposal } = await (
+      await propose(app, { path: ["name"], op: "set", proposedValue: "Grace", actor: "bob" })
+    ).json();
+    // Canonical moves after the proposal was made.
+    await app.request("/yorm/docs/Patient/p1", json({ path: ["name"], value: "Hedy" }, "PATCH"));
+
+    const stale = await app.request(`/yorm/docs/Patient/p1/proposals/${proposal.id}/accept`, {
+      method: "POST",
+    });
+    expect(stale.status).toBe(409);
+    expect(await stale.json()).toEqual({ conflict: true, currentValue: "Hedy" });
+    // Still proposed; accept-anyway forces it.
+    const anyway = await app.request(
+      `/yorm/docs/Patient/p1/proposals/${proposal.id}/accept-anyway`,
+      json({ resolvedBy: "alice" }),
+    );
+    expect(anyway.status).toBe(200);
+    expect((await (await app.request("/yorm/docs/Patient/p1")).json()).object).toEqual({
+      name: "Grace",
+    });
+  });
+
+  it("reject and withdraw round-trip; resolved/missing proposals map to 409/404", async () => {
+    const { app } = await seeded();
+    const { proposal } = await (
+      await propose(app, { path: ["name"], op: "set", proposedValue: "Grace", actor: "bob" })
+    ).json();
+
+    const reject = await app.request(
+      `/yorm/docs/Patient/p1/proposals/${proposal.id}/reject`,
+      json({ resolvedBy: "alice" }),
+    );
+    expect(reject.status).toBe(200);
+    expect((await (await app.request("/yorm/docs/Patient/p1")).json()).object).toEqual({
+      name: "Ada",
+    });
+    const rejected = await (
+      await app.request("/yorm/docs/Patient/p1/proposals?status=rejected")
+    ).json();
+    expect(rejected.proposals).toHaveLength(1);
+
+    // Withdrawing a resolved proposal is a state conflict.
+    expect(
+      (
+        await app.request(`/yorm/docs/Patient/p1/proposals/${proposal.id}?role=proposer`, {
+          method: "DELETE",
+        })
+      ).status,
+    ).toBe(409);
+    // Unknown proposal ids are 404.
+    expect(
+      (await app.request("/yorm/docs/Patient/p1/proposals/nope/accept", { method: "POST" })).status,
+    ).toBe(404);
+
+    // A fresh proposal withdraws cleanly.
+    const { proposal: second } = await (
+      await propose(app, { path: ["name"], op: "set", proposedValue: "Hedy", actor: "bob" })
+    ).json();
+    expect(
+      (
+        await app.request(`/yorm/docs/Patient/p1/proposals/${second.id}?role=proposer`, {
+          method: "DELETE",
+        })
+      ).status,
+    ).toBe(204);
+    const remaining = await (await app.request("/yorm/docs/Patient/p1/proposals")).json();
+    expect(remaining.proposals.map((p: { id: string }) => p.id)).not.toContain(second.id);
+  });
+
+  it("malformed proposal bodies yield 400", async () => {
+    const { app } = await seeded();
+    for (const body of [
+      { op: "set", proposedValue: 1, actor: "bob" }, // missing path
+      { path: ["name"], op: "rename", proposedValue: 1, actor: "bob" }, // bad op
+      { path: ["name"], op: "set", proposedValue: 1 }, // missing actor
+      { path: ["name"], op: "set", actor: "bob" }, // set without value
+    ]) {
+      expect((await propose(app, body)).status).toBe(400);
+    }
+    expect((await app.request("/yorm/docs/Patient/p1/proposals?status=weird")).status).toBe(400);
+  });
+});

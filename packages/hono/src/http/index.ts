@@ -7,12 +7,17 @@
  */
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { DEFAULT_ROOT_KEY, applyJsonPatchLike } from "@yorm/yjs";
-import type { DocumentSession, Yorm } from "@yorm/yjs";
+import {
+  DEFAULT_ROOT_KEY,
+  ProposalNotFoundError,
+  ProposalStateError,
+  applyJsonPatchLike,
+} from "@yorm/yjs";
+import type { DocumentSession, ProposalOp, ProposalStatus, Yorm } from "@yorm/yjs";
 
-import type { HonoYormOptions } from "../index.js";
+import type { HonoYormOptions, WriteScope } from "../index.js";
 import type { SessionCache } from "../shared.js";
-import { authorize, parsePolicy } from "../shared.js";
+import { authorize, authorizeWrite, parsePolicy } from "../shared.js";
 
 /** Client error carrying a 400 response message. */
 class BadRequestError extends Error {}
@@ -56,6 +61,46 @@ function parsePatchOp(value: unknown): PatchOp {
   return { path: path as Array<string | number>, value: value["value"] };
 }
 
+const PROPOSAL_OPS = ["set", "insert", "remove"] as const;
+const PROPOSAL_STATUSES = ["proposed", "accepted", "rejected", "superseded"] as const;
+
+/** Validates a POST /proposals body. */
+function parseProposeBody(value: unknown): {
+  path: Array<string | number>;
+  op: ProposalOp;
+  proposedValue?: unknown;
+  actor: string;
+} {
+  if (!isPlainObject(value)) {
+    throw new BadRequestError("proposal body must be a JSON object");
+  }
+  const { path } = parsePatchOp({ path: value["path"] });
+  const op = value["op"];
+  if (typeof op !== "string" || !(PROPOSAL_OPS as readonly string[]).includes(op)) {
+    throw new BadRequestError('proposal op must be "set", "insert", or "remove"');
+  }
+  const actor = value["actor"];
+  if (typeof actor !== "string" || actor.length === 0) {
+    throw new BadRequestError("proposal actor must be a non-empty string");
+  }
+  if (op !== "remove" && value["proposedValue"] === undefined) {
+    throw new BadRequestError(`proposal op "${op}" requires a proposedValue`);
+  }
+  return {
+    path,
+    op: op as ProposalOp,
+    ...(value["proposedValue"] !== undefined ? { proposedValue: value["proposedValue"] } : {}),
+    actor,
+  };
+}
+
+/** `resolvedBy` from an optional JSON body, defaulting to `"unknown"`. */
+async function resolvedByFrom(c: Context): Promise<string> {
+  const body: unknown = await c.req.json().catch(() => undefined);
+  const resolvedBy = isPlainObject(body) ? body["resolvedBy"] : undefined;
+  return typeof resolvedBy === "string" && resolvedBy.length > 0 ? resolvedBy : "unknown";
+}
+
 type SessionHandler = (
   c: Context,
   session: DocumentSession,
@@ -73,13 +118,19 @@ export function createHttpRoutes(
 ): Hono {
   const app = new Hono();
 
-  /** Authorize → open cached session → handler; maps errors to 400/500. */
+  /**
+   * Authorize (plus per-subtree write authorization when `writeScope` is
+   * given) → open cached session → handler; maps errors to 400/404/409/500.
+   */
   const handle =
-    (fn: SessionHandler) =>
+    (fn: SessionHandler, writeScope?: WriteScope) =>
     async (c: Context): Promise<Response> => {
       const type = c.req.param("type") ?? "";
       const id = c.req.param("id") ?? "";
       if (!(await authorize(c, options, type, id))) {
+        return c.json({ error: "forbidden" }, 403);
+      }
+      if (writeScope !== undefined && !(await authorizeWrite(c, options, type, id, writeScope))) {
         return c.json({ error: "forbidden" }, 403);
       }
       try {
@@ -88,6 +139,12 @@ export function createHttpRoutes(
       } catch (error) {
         if (error instanceof BadRequestError) {
           return c.json({ error: error.message }, 400);
+        }
+        if (error instanceof ProposalNotFoundError) {
+          return c.json({ error: error.message }, 404);
+        }
+        if (error instanceof ProposalStateError) {
+          return c.json({ error: error.message }, 409);
         }
         return c.json({ error: errorMessage(error) }, 500);
       }
@@ -117,7 +174,7 @@ export function createHttpRoutes(
       }
       await session.write(body);
       return c.json({ version: session.projectionState().version });
-    }),
+    }, "canonical"),
   );
 
   app.patch(
@@ -135,7 +192,7 @@ export function createHttpRoutes(
         }
       }
       return c.json({ version: session.projectionState().version });
-    }),
+    }, "canonical"),
   );
 
   app.get(
@@ -191,6 +248,70 @@ export function createHttpRoutes(
       session.setPolicy(policy);
       return c.body(null, 204);
     }),
+  );
+
+  // --- Proposed changes (PLAN.md M7) -------------------------------------
+
+  app.get(
+    "/docs/:type/:id/proposals",
+    handle(async (c, session) => {
+      const status = c.req.query("status");
+      if (status !== undefined && !(PROPOSAL_STATUSES as readonly string[]).includes(status)) {
+        throw new BadRequestError(
+          'status filter must be "proposed", "accepted", "rejected", or "superseded"',
+        );
+      }
+      const filter = status !== undefined ? { status: status as ProposalStatus } : undefined;
+      return c.json({ proposals: session.proposals().list(filter) });
+    }),
+  );
+
+  app.post(
+    "/docs/:type/:id/proposals",
+    handle(async (c, session) => {
+      const input = parseProposeBody(await readJsonBody(c));
+      const proposal = session.proposals().propose(input);
+      return c.json({ proposal }, 201);
+    }, "proposals"),
+  );
+
+  // Accepting writes canonical state, so accept routes need "canonical".
+  app.post(
+    "/docs/:type/:id/proposals/:pid/accept",
+    handle(async (c, session) => {
+      const pid = c.req.param("pid") ?? "";
+      const result = session.proposals().accept(pid, await resolvedByFrom(c));
+      if (result.conflict) {
+        return c.json({ conflict: true, currentValue: result.currentValue ?? null }, 409);
+      }
+      return c.json({ conflict: false, version: session.projectionState().version });
+    }, "canonical"),
+  );
+
+  app.post(
+    "/docs/:type/:id/proposals/:pid/accept-anyway",
+    handle(async (c, session) => {
+      const pid = c.req.param("pid") ?? "";
+      session.proposals().acceptAnyway(pid, await resolvedByFrom(c));
+      return c.json({ conflict: false, version: session.projectionState().version });
+    }, "canonical"),
+  );
+
+  app.post(
+    "/docs/:type/:id/proposals/:pid/reject",
+    handle(async (c, session) => {
+      const pid = c.req.param("pid") ?? "";
+      session.proposals().reject(pid, await resolvedByFrom(c));
+      return c.json({ ok: true });
+    }, "canonical"),
+  );
+
+  app.delete(
+    "/docs/:type/:id/proposals/:pid",
+    handle(async (c, session) => {
+      session.proposals().withdraw(c.req.param("pid") ?? "");
+      return c.body(null, 204);
+    }, "proposals"),
   );
 
   return app;

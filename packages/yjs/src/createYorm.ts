@@ -12,6 +12,8 @@ import type * as Y from "yjs";
 
 import type { DocumentCodec } from "./codecs/json.js";
 import { jsonCodec } from "./codecs/json.js";
+import type { ChangeIntent, ProposalsApi } from "./proposals/index.js";
+import { isProposalTrackingMapping, proposalsApi, readProposals } from "./proposals/index.js";
 import type { ManagedDocument, MemoryRuntime } from "./runtime/memory.js";
 import type { ProjectionTriggerPolicy } from "./scheduler/policy.js";
 import { ProjectionScheduler } from "./scheduler/policy.js";
@@ -50,6 +52,13 @@ export interface DocumentSession {
   applyUpdate(update: Uint8Array, origin?: Origin, actor?: string): void;
   /** Fan-out of every persisted update (transport hook). */
   subscribe(listener: (update: Uint8Array) => void): () => void;
+  /**
+   * Suggestion-mode API over the document's `yorm:proposals` subtree
+   * (PLAN.md M7). Shared per document, wired with the session's version.
+   * The codec/projection path is untouched: proposals never reach canonical
+   * projections until accepted.
+   */
+  proposals(): ProposalsApi;
   close(): void;
 }
 
@@ -64,6 +73,7 @@ export interface Yorm {
 interface DocumentChannel {
   managed: ManagedDocument;
   scheduler: ProjectionScheduler;
+  proposals: ProposalsApi;
   unsubscribe: () => void;
   sessions: number;
 }
@@ -98,9 +108,16 @@ export function createYorm(opts: YormOptions): Yorm {
         : {}),
       onProject: async (latestVersion: number): Promise<void> => {
         const object = codec.read(managed.doc);
+        /** Lazily materialized proposals subtree for tracking mappings (7b). */
+        let proposalIntents: ChangeIntent[] | undefined;
         for (const mapping of mappings) {
+          // The tracking mapping projects the proposals subtree, not the
+          // codec output — the codec only ever reads the canonical subtree.
+          const mappingObject = isProposalTrackingMapping(mapping)
+            ? (proposalIntents ??= readProposals(managed.doc))
+            : object;
           const plan = planProjection(mapping, {
-            object,
+            object: mappingObject,
             documentId: id,
             documentVersion: latestVersion,
             origin: provenance.lastOrigin,
@@ -119,7 +136,8 @@ export function createYorm(opts: YormOptions): Yorm {
       provenance.lastOrigin = meta.origin;
       scheduler.notifyChange(meta.version);
     });
-    return { managed, scheduler, unsubscribe, sessions: 0 };
+    const proposals = proposalsApi(managed.doc, { version: () => managed.version });
+    return { managed, scheduler, proposals, unsubscribe, sessions: 0 };
   }
 
   function getChannel(type: string, id: string): Promise<DocumentChannel> {
@@ -161,6 +179,7 @@ export function createYorm(opts: YormOptions): Yorm {
         applyUpdate: (update, origin = "yjs", actor) =>
           channel.managed.applyUpdate(update, origin, actor),
         subscribe: (listener) => channel.managed.subscribe((update) => listener(update)),
+        proposals: () => channel.proposals,
         close(): void {
           if (closed) {
             return;

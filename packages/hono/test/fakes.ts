@@ -85,10 +85,14 @@ export function fakeProjectionStore(): FakeProjectionStore {
   };
 }
 
-/** Polls `cond` until it holds or `timeoutMs` elapses (then throws `label`). */
-export async function until(cond: () => boolean, label: string, timeoutMs = 5_000): Promise<void> {
+/** Polls `cond` (sync or async) until it holds or `timeoutMs` elapses (then throws `label`). */
+export async function until(
+  cond: () => boolean | Promise<boolean>,
+  label: string,
+  timeoutMs = 5_000,
+): Promise<void> {
   const deadline = Date.now() + timeoutMs;
-  while (!cond()) {
+  while (!(await cond())) {
     if (Date.now() > deadline) {
       throw new Error(`timed out waiting for: ${label}`);
     }

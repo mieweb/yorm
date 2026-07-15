@@ -15,7 +15,12 @@ import { createHttpRoutes } from "./http/index.js";
 import { createSessionCache } from "./shared.js";
 import { createWebSocketRoutes } from "./websocket/index.js";
 
+export { guardCanonicalWrites } from "./websocket/index.js";
+
 export const YORM_HONO_VERSION = "0.1.0";
+
+/** Which subtree of the document a write targets (PLAN.md M7). */
+export type WriteScope = "canonical" | "proposals";
 
 export interface HonoYormOptions {
   /**
@@ -23,6 +28,21 @@ export interface HonoYormOptions {
    * Returning `false` yields 403 on HTTP and close code 1008 on WebSocket.
    */
   onAuthorize?: (ctx: Context, docRef: { type: string; id: string }) => boolean | Promise<boolean>;
+  /**
+   * Per-subtree write authorization (PLAN.md M7): run in addition to
+   * `onAuthorize` before any write. Scope is `"canonical"` for PUT/PATCH and
+   * proposal resolution (accepting writes canonical state), `"proposals"`
+   * for creating/withdrawing proposals. On WebSocket connections the scope
+   * is chosen by the `?role=proposer` query param: proposer connections need
+   * `"proposals"` write access and have direct canonical edits refused (see
+   * `guardCanonicalWrites`); all other connections need `"canonical"`.
+   * Absent hook means allow. Returning `false` yields 403 / close 1008.
+   */
+  onAuthorizeWrite?: (
+    ctx: Context,
+    docRef: { type: string; id: string },
+    scope: WriteScope,
+  ) => boolean | Promise<boolean>;
   /**
    * Projection trigger policy applied when the plugin opens a document
    * session. Defaults to the Yorm instance's own default (passthrough).

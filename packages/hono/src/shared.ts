@@ -6,7 +6,7 @@
 import type { Context } from "hono";
 import type { DocumentSession, ProjectionTriggerPolicy, Yorm } from "@yorm/yjs";
 
-import type { HonoYormOptions } from "./index.js";
+import type { HonoYormOptions, WriteScope } from "./index.js";
 
 /**
  * Per-document session cache. Sessions are opened once and reused for the
@@ -85,6 +85,20 @@ export async function authorize(
     return true;
   }
   return await options.onAuthorize(ctx, { type, id });
+}
+
+/** Runs the per-subtree `onAuthorizeWrite` hook; absent hook means allow. */
+export async function authorizeWrite(
+  ctx: Context,
+  options: HonoYormOptions,
+  type: string,
+  id: string,
+  scope: WriteScope,
+): Promise<boolean> {
+  if (!options.onAuthorizeWrite) {
+    return true;
+  }
+  return await options.onAuthorizeWrite(ctx, { type, id }, scope);
 }
 
 const POLICY_KINDS = ["every-change", "on-blur", "idle", "explicit"] as const;

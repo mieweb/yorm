@@ -155,6 +155,56 @@ function setOrRemove(container: YContainer, segment: string | number, value: unk
   }
 }
 
+function insertAt(container: YContainer, segment: string | number, value: unknown): void {
+  if (!(container instanceof Y.Array)) {
+    throw new Error(
+      `applyJsonPatchLike: "insert" requires an array at the path's parent; found a map`,
+    );
+  }
+  const index = assertArrayIndex(segment);
+  if (index > container.length) {
+    throw new Error(
+      `applyJsonPatchLike: array index ${index} is out of bounds for insert (length ${container.length})`,
+    );
+  }
+  container.insert(index, [toYValue(value)]);
+}
+
+/** How {@link applyPathWrite} treats the path's last segment. */
+export type PathWriteOp = "set" | "insert";
+
+/**
+ * Non-transacting core of {@link applyJsonPatchLike}: navigates `Y.Map` /
+ * `Y.Array` along `path` starting at `root`, creating intermediate containers
+ * as needed, then applies the operation at the last segment.
+ *
+ * - `"set"` — sets the value (or removes it when `value === undefined`)
+ * - `"insert"` — inserts `value` into the array at the last segment's index
+ *
+ * Callers are responsible for wrapping this in `doc.transact(...)`; the
+ * proposals engine reuses it to apply an accepted intent and mark the
+ * proposal resolved inside one atomic transaction.
+ */
+export function applyPathWrite(
+  root: Y.Map<unknown> | Y.Array<unknown>,
+  path: Array<string | number>,
+  value: unknown,
+  op: PathWriteOp = "set",
+): void {
+  if (path.length === 0) {
+    throw new Error("applyJsonPatchLike: path must contain at least one segment");
+  }
+  let container: YContainer = root;
+  for (let i = 0; i < path.length - 1; i++) {
+    container = descend(container, path[i]!, path[i + 1]!);
+  }
+  if (op === "insert") {
+    insertAt(container, path[path.length - 1]!, value);
+  } else {
+    setOrRemove(container, path[path.length - 1]!, value);
+  }
+}
+
 /**
  * Sets (or removes, when `value === undefined`) a nested value semantically:
  * navigates `Y.Map` / `Y.Array` along `path`, creating intermediate
@@ -167,14 +217,7 @@ export function applyJsonPatchLike(
   path: Array<string | number>,
   value: unknown,
 ): void {
-  if (path.length === 0) {
-    throw new Error("applyJsonPatchLike: path must contain at least one segment");
-  }
   doc.transact(() => {
-    let container: YContainer = doc.getMap(rootKey);
-    for (let i = 0; i < path.length - 1; i++) {
-      container = descend(container, path[i]!, path[i + 1]!);
-    }
-    setOrRemove(container, path[path.length - 1]!, value);
+    applyPathWrite(doc.getMap(rootKey), path, value);
   });
 }

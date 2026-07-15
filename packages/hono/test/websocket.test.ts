@@ -8,9 +8,9 @@ import * as encoding from "lib0/encoding";
 import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
 import { defineMapping, one } from "@yorm/core";
-import { createYorm, memoryRuntime } from "@yorm/yjs";
+import { createYorm, memoryRuntime, proposalsApi } from "@yorm/yjs";
 
-import { createHonoYorm } from "../src/index.js";
+import { createHonoYorm, guardCanonicalWrites } from "../src/index.js";
 import type { FakeDocumentStore, FakeProjectionStore } from "./fakes.js";
 import { fakeDocumentStore, fakeProjectionStore, until } from "./fakes.js";
 
@@ -111,6 +111,9 @@ describe("@yorm/hono WebSocket route", () => {
       createHonoYorm(yorm, {
         upgradeWebSocket,
         onAuthorize: (ctx) => ctx.req.query("token") !== "bad",
+        // Proposer-role connections may only write the proposals subtree.
+        onAuthorizeWrite: (ctx, _docRef, scope) =>
+          (ctx.req.query("role") ?? "editor") === "proposer" ? scope === "proposals" : true,
       }),
     );
     await new Promise<void>((resolve) => {
@@ -180,5 +183,49 @@ describe("@yorm/hono WebSocket route", () => {
     const flush = await app.request("/yorm/docs/Patient/p2/flush", { method: "POST" });
     expect(flush.status).toBe(200);
     expect(projections.plans.filter((plan) => plan.documentId === "p2")).toHaveLength(1);
+  });
+
+  it("proposer WS: proposals-subtree updates flow, canonical edits are refused", async () => {
+    const proposer = connect("/yorm/ws/Patient/p3?role=proposer");
+    await until(() => proposer.synced, "proposer synced");
+
+    // A proposal from the proposer connection syncs to the server…
+    proposalsApi(proposer.doc, { genId: () => "prop-1" }).propose({
+      path: ["name"],
+      op: "set",
+      proposedValue: "Grace",
+      actor: "bob",
+    });
+    await until(async () => {
+      const res = await app.request("/yorm/docs/Patient/p3/proposals");
+      const body = (await res.json()) as { proposals: Array<{ id: string }> };
+      return body.proposals.some((p) => p.id === "prop-1");
+    }, "proposal reached the server");
+
+    // …but a direct canonical edit is refused: the socket closes with 1008
+    // and the server-side document is unchanged.
+    proposer.doc.getMap("resource").set("name", "Mallory");
+    await until(() => proposer.closed !== null, "proposer socket closed");
+    expect(proposer.closed).toEqual({ code: 1008 });
+    const doc = await (await app.request("/yorm/docs/Patient/p3")).json();
+    expect(doc.object).toEqual({});
+  });
+
+  it("guardCanonicalWrites flags only updates that touch the canonical subtree", () => {
+    const server = new Y.Doc();
+    server.getMap("resource").set("name", "Ada");
+
+    const client = new Y.Doc();
+    Y.applyUpdate(client, Y.encodeStateAsUpdate(server));
+    const before = Y.encodeStateAsUpdate(client);
+
+    client.getMap("yorm:proposals").set("p1", "pending");
+    const proposalOnly = Y.encodeStateAsUpdate(client, Y.encodeStateVectorFromUpdate(before));
+    expect(guardCanonicalWrites(server, proposalOnly)).toBe(false);
+
+    const mid = Y.encodeStateAsUpdate(client);
+    client.getMap("resource").set("name", "Mallory");
+    const canonical = Y.encodeStateAsUpdate(client, Y.encodeStateVectorFromUpdate(mid));
+    expect(guardCanonicalWrites(server, canonical)).toBe(true);
   });
 });
