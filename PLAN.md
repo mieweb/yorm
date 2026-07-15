@@ -42,13 +42,13 @@ Exit criteria: green CI on an empty-but-wired monorepo.
 
 Goal: the deterministic object→rows engine, no I/O.
 
-- [ ] Mapping DSL: `defineMapping`, `one(...)`, `many(...)` with `key`/`values`/`rows` as in the README
-- [ ] `ProjectionPlanner`: object + mapping → deterministic plan (upserts, reconciliation deletes, checkpoint record)
-- [ ] Store interfaces (types only): `DocumentStore`, `ProjectionStore`, `Runtime`
-- [ ] Provenance/origin tags on plans (`yjs`, `sql`, `replay`, `projection`)
-- [ ] Column-ownership declaration (mapping only touches owned columns)
-- [ ] Mapping version field, immutability convention
-- [ ] Golden tests: object in → expected plan out (new doc, optional fields, repeated elements, removal, reorder, idempotent second run)
+- [x] Mapping DSL: `defineMapping`, `one(...)`, `many(...)` with `key`/`values`/`rows` as in the README
+- [x] `ProjectionPlanner`: object + mapping → deterministic plan (upserts, reconciliation deletes, checkpoint record)
+- [x] Store interfaces (types only): `DocumentStore`, `ProjectionStore`, `Runtime`
+- [x] Provenance/origin tags on plans (`yjs`, `sql`, `replay`, `projection`)
+- [x] Column-ownership declaration (mapping only touches owned columns)
+- [x] Mapping version field, immutability convention
+- [x] Golden tests: object in → expected plan out (new doc, optional fields, repeated elements, removal, reorder, idempotent second run)
 
 Exit criteria: golden tests pass; core has zero runtime dependencies on Hono/Drizzle/Yjs.
 
