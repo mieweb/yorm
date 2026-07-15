@@ -29,7 +29,7 @@
     "@yorm/hono": "workspace:*",
     "@yorm/yjs": "workspace:*",
     "better-sqlite3": "^11.5.0",
-    "drizzle-orm": "^0.36.4",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.6.11",
     "lib0": "^0.2.98",
     "y-protocols": "^1.0.6",
