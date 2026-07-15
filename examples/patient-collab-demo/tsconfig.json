@@ -12,7 +12,14 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "@esheet/core": ["../../vendor/eSheet/packages/core/dist/index.d.ts"],
+      "@esheet/renderer": ["../../vendor/eSheet/packages/renderer/dist/index.d.ts"],
+      "@esheet/builder": ["../../vendor/eSheet/packages/builder/dist/index.d.ts"],
+      "react": ["./node_modules/@types/react"],
+      "react-dom": ["./node_modules/@types/react-dom"]
+    }
   },
   "include": ["src/client", "tests", "vite.config.ts", "playwright.config.ts"]
 }

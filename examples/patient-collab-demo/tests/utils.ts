@@ -28,6 +28,16 @@ export async function openEditor(browser: Browser, path = "/"): Promise<Page> {
   return page;
 }
 
+/**
+ * Opens the app in the eSheet view and waits for the renderer's form store
+ * to be wired to the Y.Doc (edits before `data-ready` would be lost).
+ */
+export async function openEsheetEditor(browser: Browser, path = "/?view=esheet"): Promise<Page> {
+  const page = await openEditor(browser, path);
+  await expect(page.locator(".patient-form")).toHaveAttribute("data-ready", "true");
+  return page;
+}
+
 /** A field input (dense or eSheet), located by its accessible label. */
 export function fieldInput(page: Page, label: string): Locator {
   return page.getByLabel(label, { exact: true });

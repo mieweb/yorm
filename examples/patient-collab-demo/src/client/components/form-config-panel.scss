@@ -1,0 +1,62 @@
+/* Collapsible runtime form-definition editor for the eSheet view. */
+
+.form-config {
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-md);
+  background: var(--mieweb-card);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.form-config-summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--mieweb-foreground);
+}
+
+.form-config-summary:focus-visible {
+  outline: 2px solid var(--mieweb-ring);
+  outline-offset: 2px;
+}
+
+.form-config-body {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.form-config-yaml {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--mieweb-font-mono, monospace);
+  font-size: 0.8rem;
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-sm);
+  background: var(--mieweb-background);
+  color: var(--mieweb-foreground);
+  padding: 0.5rem;
+  resize: vertical;
+}
+
+.form-config-error {
+  margin: 0;
+  color: var(--mieweb-destructive);
+  font-size: 0.85rem;
+}
+
+.form-config-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.form-config-loading {
+  margin: 0;
+  color: var(--mieweb-muted-foreground);
+}
+
+.form-config-builder {
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-sm);
+  max-height: 32rem;
+  overflow: auto;
+}

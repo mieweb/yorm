@@ -1,4 +1,6 @@
-/* Wrapper around the eSheet-rendered Patient form. */
+/* Wrapper around the eSheet-rendered Patient form. Suggestion adornments
+   and presence dots are rendered by the eSheet renderer itself (its `collab`
+   prop) — no demo-side input decoration remains. */
 
 .patient-form-hint {
   margin: 0;
@@ -11,28 +13,9 @@
   outline-offset: 2px;
 }
 
-/* An input with an open suggestion (M7c) — visually distinct pending state. */
-.patient-form .field-has-suggestion {
-  border-color: var(--mieweb-warning);
-  box-shadow: 0 0 0 1px var(--mieweb-warning);
-  text-decoration: underline dotted var(--mieweb-warning);
-  text-underline-offset: 0.25em;
-}
-
-.suggestion-chips {
-  margin: 0.75rem 0 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.suggestion-chip {
-  border: 1px solid var(--mieweb-warning);
-  border-radius: var(--mieweb-radius-full);
-  padding: 0.15rem 0.6rem;
+/* Definition fields with no matching Patient field spec (config panel). */
+.patient-form-unbound {
+  margin: 0.5rem 0 0;
   font-size: 0.8rem;
   color: var(--mieweb-warning);
-  background: var(--mieweb-card);
 }

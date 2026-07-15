@@ -87,15 +87,6 @@ importers:
 
   examples/patient-collab-demo:
     dependencies:
-      '@esheet/core':
-        specifier: 0.0.3
-        version: 0.0.3(@types/react@18.3.31)(react@18.3.1)
-      '@esheet/fields':
-        specifier: 0.0.3
-        version: 0.0.3(@types/react@18.3.31)
-      '@esheet/renderer':
-        specifier: 0.0.3
-        version: 0.0.3(@types/react@18.3.31)(react@18.3.1)
       '@hono/node-server':
         specifier: ^1.13.7
         version: 1.19.14(hono@4.12.30)
@@ -114,6 +105,9 @@ importers:
       hono:
         specifier: ^4.6.11
         version: 4.12.30
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.3.0
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -133,6 +127,9 @@ importers:
       '@playwright/test':
         specifier: ^1.49.0
         version: 1.61.1
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
       '@types/react':
         specifier: ^18.3.12
         version: 18.3.31
@@ -1169,6 +1166,9 @@ packages:
 
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
+
+  '@types/js-yaml@4.0.9':
+    resolution: {integrity: sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -2700,6 +2700,7 @@ snapshots:
       - immer
       - react
       - use-sync-external-store
+    optional: true
 
   '@esheet/core@0.0.3(@types/react@18.3.31)(react@18.3.1)':
     dependencies:
@@ -2711,6 +2712,7 @@ snapshots:
       - immer
       - react
       - use-sync-external-store
+    optional: true
 
   '@esheet/core@0.0.3(@types/react@18.3.31)(react@19.2.7)':
     dependencies:
@@ -2722,6 +2724,7 @@ snapshots:
       - immer
       - react
       - use-sync-external-store
+    optional: true
 
   '@esheet/fields@0.0.3(@types/react@18.3.31)':
     dependencies:
@@ -2740,6 +2743,7 @@ snapshots:
       - immer
       - use-sync-external-store
       - wavesurfer.js
+    optional: true
 
   '@esheet/renderer@0.0.3(@types/react@18.3.31)(react@18.3.1)':
     dependencies:
@@ -2758,6 +2762,7 @@ snapshots:
       - immer
       - use-sync-external-store
       - wavesurfer.js
+    optional: true
 
   '@eslint-community/eslint-utils@4.9.1(eslint@9.39.5)':
     dependencies:
@@ -2864,6 +2869,7 @@ snapshots:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       tailwind-merge: 2.6.1
+    optional: true
 
   '@mieweb/ui@0.6.1(@esheet/renderer@0.0.3(@types/react@18.3.31)(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
@@ -3051,6 +3057,8 @@ snapshots:
       '@types/node': 22.20.1
 
   '@types/estree@1.0.9': {}
+
+  '@types/js-yaml@4.0.9': {}
 
   '@types/json-schema@7.0.15': {}
 
@@ -3684,6 +3692,7 @@ snapshots:
   lucide-react@0.562.0(react@19.2.7):
     dependencies:
       react: 19.2.7
+    optional: true
 
   luxon@3.7.2: {}
 
@@ -3816,6 +3825,7 @@ snapshots:
     dependencies:
       react: 19.2.7
       scheduler: 0.27.0
+    optional: true
 
   react-refresh@0.17.0: {}
 
@@ -3823,7 +3833,8 @@ snapshots:
     dependencies:
       loose-envify: 1.4.0
 
-  react@19.2.7: {}
+  react@19.2.7:
+    optional: true
 
   readable-stream@3.6.2:
     dependencies:
@@ -3886,7 +3897,8 @@ snapshots:
     dependencies:
       loose-envify: 1.4.0
 
-  scheduler@0.27.0: {}
+  scheduler@0.27.0:
+    optional: true
 
   semver@6.3.1: {}
 
@@ -3910,7 +3922,8 @@ snapshots:
       once: 1.4.0
       simple-concat: 1.0.1
 
-  sortablejs@1.15.7: {}
+  sortablejs@1.15.7:
+    optional: true
 
   source-map-js@1.2.1: {}
 
@@ -4156,7 +4169,8 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod@4.4.3: {}
+  zod@4.4.3:
+    optional: true
 
   zustand@5.0.14(@types/react@18.3.31)(react@18.3.1):
     optionalDependencies:
@@ -4167,3 +4181,4 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.31
       react: 19.2.7
+    optional: true

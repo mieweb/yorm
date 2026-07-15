@@ -32,15 +32,20 @@ What it demonstrates:
   (given/family names, birth date, phone, email). The eSheet form store and the
   Yjs-backed store are wired both ways, writing only when a value actually
   differs (echo-safe). The header **Editor: Dense | eSheet** toggle (also
-  `?view=esheet`) swaps views over the same store/doc — a later phase replaces
-  the npm `@esheet/*@0.0.3` packages with eSheet built from source.
+  `?view=esheet`) swaps views over the same store/doc. The `@esheet/*` packages
+  are **built from source** out of the [vendor/eSheet](../../vendor/eSheet)
+  submodule — see [eSheet from source](#esheet-from-source) — and presence +
+  suggestions render natively through the renderer's `collab` prop. The form
+  definition itself is editable at runtime — see
+  [Form config](#form-config-esheet-view).
 - **6c — UI shell** with `@mieweb/ui`: presence avatars, connection status, the
   autosave-policy dropdown, Save button (explicit mode), an "unsaved projection
   changes" indicator, and the live SQLite rows panel (polled every 750 ms).
 - **6d — Playwright e2e** ([tests/](tests/)): convergence across two browser
   contexts, policy semantics (explicit → rows only after Save; on-blur →
   rows after blur), unmapped-field convergence, inline/mass proposal review,
-  and the view toggle.
+  the view toggle, and the eSheet-native decorations + YAML form config
+  ([tests/esheet.spec.ts](tests/esheet.spec.ts)).
 - **7c — Suggestion mode** ([src/client/components/ReviewPanel.tsx](src/client/components/ReviewPanel.tsx)):
   an editor/proposer role switcher, inline suggestion adornments on the dense
   editor, a top accumulating proposals bar with mass actions, and the
@@ -50,6 +55,7 @@ What it demonstrates:
 ## One-command startup
 
 ```sh
+pnpm --filter patient-collab-demo esheet:build   # once: build vendor/eSheet (see below)
 pnpm --filter patient-collab-demo dev
 ```
 
@@ -148,9 +154,12 @@ In the dense editor an open suggestion renders **inline next to the field**
 editors — Accept / Reject buttons right there. A stale accept (the canonical
 value changed since the proposal, HTTP 409) surfaces an inline "changed since
 proposed" state offering **Accept anyway** or Reject. Proposers see their own
-pending suggestion as a visually distinct chip without action buttons; in the
-eSheet view suggestions render as chips under the form with an outline on the
-affected input.
+pending suggestion as a visually distinct chip without action buttons. The
+eSheet view renders the equivalent adornments **natively** — the demo passes
+the renderer a `CollabDecorations` object (`presenceByField`,
+`proposalsByField`, `canResolve`, `onProposalAction`, `formatValue`; declared
+in `@esheet/core`, rendered by `@esheet/renderer`'s `FieldNode`) built from
+the store's peers, proposals, and `useProposalActions`.
 
 The **Suggested changes** bar sits on top of the editor pane and accumulates
 every change intent of the session: open ones first (with per-item Accept /
@@ -176,14 +185,53 @@ the status changes.
   (`t(key)` lookup, English defaults) — no hardcoded literals in components.
 - Styling is per-component SCSS using only `--mieweb-*` design tokens.
 
+## eSheet from source
+
+The `@esheet/core|renderer|builder` packages come from the
+[vendor/eSheet](../../vendor/eSheet) git submodule (branch
+`yorm-collab-decorations`, which adds the optional `collab` decoration API),
+not from npm. Build them once (and after every submodule change):
+
+```sh
+git submodule update --init
+pnpm --filter patient-collab-demo esheet:build
+```
+
+The script runs `npm ci || npm install` plus the Nx builds (including the
+Tailwind CSS steps) inside the submodule; outputs land in
+`vendor/eSheet/packages/*/dist`. The demo consumes those dists through Vite
+`resolve.alias` + tsconfig `paths` (see [vite.config.ts](vite.config.ts)) —
+`file:` dependencies don't work here because the submodule packages reference
+each other by unpublished versions that pnpm would try to fetch from the
+registry. Their runtime deps resolve from `vendor/eSheet/node_modules`; React
+stays this example's copy via `resolve.dedupe` (+ a `react` tsconfig `paths`
+pin for types). See the [eSheet repo](https://github.com/mieweb/eSheet) for
+the packages' own docs.
+
+## Form config (eSheet view)
+
+The eSheet view's collapsible **Form config** panel
+([src/client/components/FormConfigPanel.tsx](src/client/components/FormConfigPanel.tsx))
+makes the Patient `FormDefinition` editable at runtime:
+
+- **YAML** tab: the current definition as YAML (js-yaml); **Apply** parses and
+  validates it with `@esheet/core`'s `formDefinitionSchema` and re-renders the
+  form. Parse/validation errors show inline (`role=alert`) and never break
+  the live form.
+- **Browser** tab: `@esheet/builder`'s visual editor (lazy-loaded from the
+  same submodule) on the same definition; **Apply** commits the built
+  definition through the same validation.
+- Fields whose id matches a [patientFields.ts](src/client/patientFields.ts)
+  spec stay two-way bound to the document; unknown ids render but are listed
+  as unbound under the form. The applied definition persists per document in
+  localStorage; **Reset to default** clears it.
+
 ## Notes
 
 - The **dense** view is the default; `?view=esheet` (or the header toggle)
-  renders the eSheet form instead. A later phase replaces the published
-  `@esheet/*@0.0.3` packages with eSheet built from source.
-- `@esheet/renderer@0.0.3` declares a React ≥ 19 peer but uses no 19-only
-  APIs; the demo runs it on React 18 with Vite `resolve.dedupe` for
-  react/react-dom.
+  renders the eSheet form instead.
+- `@esheet/renderer` declares a React ≥ 19 peer but uses no 19-only APIs; the
+  demo runs it on React 18 with Vite `resolve.dedupe` for react/react-dom.
 - The phone field uses eSheet's plain `string` input type (not `tel`): the tel
   mask assumes US numbers and corrupts the fixture's international value.
 

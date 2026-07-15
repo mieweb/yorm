@@ -10,10 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The patient-collab-demo consumes @esheet/* from the vendor/eSheet
+      # submodule (built dists, wired via vite aliases) — build them before
+      # the steps that need them.
+      - run: pnpm --filter patient-collab-demo esheet:build
       - run: pnpm ci
+      - run: pnpm --filter patient-collab-demo typecheck
+      - run: pnpm --filter patient-collab-demo build
