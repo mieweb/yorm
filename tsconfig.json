@@ -3,6 +3,8 @@
   "references": [
     { "path": "packages/core" },
     { "path": "packages/yjs" },
-    { "path": "packages/drizzle" }
+    { "path": "packages/drizzle" },
+    { "path": "packages/hono" },
+    { "path": "packages/fhir" }
   ]
 }

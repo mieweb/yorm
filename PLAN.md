@@ -76,18 +76,18 @@ Exit criteria: an in-memory end-to-end (no DB) test edits a Y.Doc and observes c
 
 Goal: `app.route("/yorm", createHonoYorm(yorm))` gives any Hono app a YORM server.
 
-- [ ] `createHonoYorm(yorm, options)` returning a mountable `Hono` sub-app
-- [ ] HTTP API:
-  - [ ] `GET /docs/:type/:id` — materialized object (JSON snapshot)
-  - [ ] `PUT /docs/:type/:id` — write/replace document via codec (semantic transaction)
-  - [ ] `PATCH /docs/:type/:id` — partial semantic update
-  - [ ] `GET /docs/:type/:id/projection-state` — checkpoint/lag visibility, including pending (unprojected) changes under deferred policies
-  - [ ] `POST /docs/:type/:id/flush` — explicit save: project now (used by the `explicit` policy's Save button; also honored as blur/idle signal transport)
-- [ ] WebSocket endpoint `/ws/:type/:id` speaking y-protocols (sync + awareness), built on Hono's `upgradeWebSocket` abstraction so Node/Bun/Deno/CF work; tested on Node
-- [ ] Client can set/change the projection trigger policy for its session (query param or control message); server default + max-lag cap from plugin options
-- [ ] Plugin options: path prefix, auth hook (`onAuthorize(ctx, docId)`), codec selection per document type
-- [ ] No hard dependency on any DB package — the plugin only sees `Yorm` interfaces
-- [ ] Tests: HTTP round trips; two WebSocket clients converge on one document; unauthorized access rejected
+- [x] `createHonoYorm(yorm, options)` returning a mountable `Hono` sub-app
+- [x] HTTP API:
+  - [x] `GET /docs/:type/:id` — materialized object (JSON snapshot)
+  - [x] `PUT /docs/:type/:id` — write/replace document via codec (semantic transaction)
+  - [x] `PATCH /docs/:type/:id` — partial semantic update
+  - [x] `GET /docs/:type/:id/projection-state` — checkpoint/lag visibility, including pending (unprojected) changes under deferred policies
+  - [x] `POST /docs/:type/:id/flush` — explicit save: project now (used by the `explicit` policy's Save button; also honored as blur/idle signal transport)
+- [x] WebSocket endpoint `/ws/:type/:id` speaking y-protocols (sync + awareness), built on Hono's `upgradeWebSocket` abstraction so Node/Bun/Deno/CF work; tested on Node
+- [x] Client can set/change the projection trigger policy for its session (query param or control message); server default + max-lag cap from plugin options
+- [x] Plugin options: path prefix, auth hook (`onAuthorize(ctx, docId)`), codec selection per document type
+- [x] No hard dependency on any DB package — the plugin only sees `Yorm` interfaces
+- [x] Tests: HTTP round trips; two WebSocket clients converge on one document; unauthorized access rejected
 
 Exit criteria: example Hono server in `examples/` runs, a `y-websocket` browser/Node client edits a Patient, rows appear in SQLite.
 
@@ -118,9 +118,9 @@ Goal: demonstrate lossless sync between a phone-style contacts DB and a canonica
 
 ### 5a. `@yorm/fhir` (minimum slice)
 
-- [ ] FHIR JSON codec for `Patient` (generic resource codec, Patient-tested)
-- [ ] `fhirElementId(...)` stable element identity (explicit `id` → business key → ingestion-assigned id)
-- [ ] Extension preservation helpers (unmapped contact fields ride along as extensions)
+- [x] FHIR JSON codec for `Patient` (generic resource codec, Patient-tested)
+- [x] `fhirElementId(...)` stable element identity (explicit `id` → business key → ingestion-assigned id)
+- [x] Extension preservation helpers (unmapped contact fields ride along as extensions)
 
 ### 5b. Contacts schema (Apple AddressBook-inspired)
 

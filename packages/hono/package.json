@@ -1,0 +1,37 @@
+{
+  "name": "@yorm/hono",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run --passWithNoTests --root ../.. packages/hono"
+  },
+  "dependencies": {
+    "@yorm/core": "workspace:*",
+    "@yorm/yjs": "workspace:*",
+    "lib0": "^0.2.98",
+    "y-protocols": "^1.0.6"
+  },
+  "peerDependencies": {
+    "hono": "^4",
+    "yjs": "^13"
+  },
+  "devDependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@hono/node-ws": "^1.0.4",
+    "hono": "^4.6.11",
+    "typescript": "^5.6.3",
+    "yjs": "^13.6.20"
+  }
+}
