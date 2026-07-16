@@ -131,6 +131,11 @@ mixed update that touches both subtrees is refused as a whole; a proposer
 that made offline canonical edits is disconnected on re-sync. Partial revert
 of mixed updates is a future extension.
 
+The guard is **write** authorization only. Every synchronized participant
+receives the whole `Y.Doc` — the canonical resource and all pending
+proposals — so a `Y.Doc` is the confidentiality boundary, not the role. See
+the root README's [Security](../../README.md#security) section.
+
 ```mermaid
 sequenceDiagram
     participant ClientA as Client A (Y.Doc)

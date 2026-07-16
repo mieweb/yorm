@@ -762,11 +762,34 @@ The lifecycle is:
 4. Rejecting marks the proposal rejected and changes nothing else.
 5. If the canonical value moved after the proposal was made, the stale proposal surfaces as a conflict for the application to resolve.
 
-Roles are enforced server-side: the authorization hook can grant a session write access to the proposals subtree while refusing direct canonical edits.
+Roles are enforced server-side: the authorization hook can grant a session write access to the proposals subtree while refusing direct canonical edits. Note that this is **write** authorization only — every participant in the document can read all of it, including other users' pending proposals (see [Security](#security)).
 
 Open proposals can themselves be projected into a forward-only tracking table, giving DBAs and reports visibility into pending suggestions using the same mapping engine.
 
 Whole-document branch proposals (forking a `Y.Doc` and merging on approval) are a possible future extension; the intent-based model above is the supported v1 design.
+
+---
+
+## Security
+
+YORM treats each Yjs `Y.Doc` as an **authorization boundary**. Any client permitted to synchronize a document must be assumed capable of inspecting _all_ content synchronized into that document — the CRDT state a provider replicates is the whole document, not the fields a UI chooses to render. Hiding fields in the user interface or filtering them in client-side code is not a confidentiality control, and Yjs explicitly notes that read/write permissions cannot practically be enforced within a single `Y.Doc`.[^yjs-permissions]
+
+This has two concrete consequences for YORM deployments:
+
+- **Suggestion mode is write authorization, not confidentiality.** The proposals subtree lives in the same `Y.Doc` as the canonical resource, so a proposer — or any synchronized reader — sees the full canonical state and every other participant's pending proposals. The server-side role hook (and the WebSocket guard that refuses proposers' canonical edits) controls who may _change_ what; it cannot hide anything.
+- **Content with different audiences belongs in different documents.** Store separately authorized material — shared, staff-only, counsel-only, participant-specific — in separate, independently authorized documents or subdocuments, each with its own projections.[^yjs-subdocuments] A document is YORM's consistency boundary _and_ its confidentiality boundary.
+
+Authentication and authorization are the collaboration server's job, enforced on every document connection: verify read access before sending any state or updates, and reject incoming updates unless the participant has write permission for the targeted subtree. In `@yorm/hono` these are the `onAuthorize` (connection/read) and `onAuthorizeWrite` (canonical vs. proposals scope) hooks. Room identifiers, client-side logic, and UI visibility rules are not security boundaries. Yjs documents `y-websocket` as the natural centralized point for authentication and authorization, and its threat model assigns authentication, transport security, and server-side read/write access control to the application.[^yjs-websocket][^yjs-threat-model]
+
+Encryption, auditing, tenant isolation, retention, and regulatory controls remain deployment responsibilities (see "Protect PHI" above).
+
+[^yjs-permissions]: [Yjs FAQ: Structuring data in smaller YDocs](https://docs.yjs.dev/api/faq#structuring-data-in-smaller-ydocs)
+
+[^yjs-subdocuments]: [Yjs documentation: Subdocuments](https://docs.yjs.dev/api/subdocuments)
+
+[^yjs-websocket]: [Yjs documentation: y-websocket](https://docs.yjs.dev/ecosystem/connection-provider/y-websocket)
+
+[^yjs-threat-model]: [Yjs Threat Model](https://github.com/yjs/yjs/blob/main/THREAT_MODEL.md)
 
 ---
 
