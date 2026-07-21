@@ -10,5 +10,6 @@ export * from "./codecs/json.js";
 export * from "./scheduler/policy.js";
 export * from "./runtime/memory.js";
 export * from "./proposals/index.js";
+export * from "./policy/index.js";
 export * from "./createYorm.js";
 export * from "./replay.js";
