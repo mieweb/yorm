@@ -109,6 +109,9 @@ Query params:
 - `?idleMs=<ms>` — debounce for `policy=idle`.
 - `?role=proposer` — the connection may only write the **proposals** subtree;
   see “Roles & the canonical-write guard” below.
+- `?role=<role>` matching a policy in `options.rolePolicies` — the connection
+  syncs a redacted **policy lens** instead of the canonical doc; see “Role
+  policies” below.
 
 ### Roles & the canonical-write guard (PLAN.md M7)
 
@@ -134,7 +137,8 @@ of mixed updates is a future extension.
 The guard is **write** authorization only. Every synchronized participant
 receives the whole `Y.Doc` — the canonical resource and all pending
 proposals — so a `Y.Doc` is the confidentiality boundary, not the role. See
-the root README's [Security](../../README.md#security) section.
+the root README's [Security](../../README.md#security) section. For
+per-role **read** redaction, see “Role policies” below.
 
 ```mermaid
 sequenceDiagram
@@ -161,6 +165,32 @@ socket **except** the origin socket. On close, the socket's awareness client
 ids are removed; when the last socket leaves, the room is torn down (the
 cached session stays open so projections continue).
 
+### Role policies (policy lens, role-security POC)
+
+Pass developer-defined [`RolePolicy`](../yjs/README.md#role-policies--the-policy-lens-role-security-poc)
+objects and the WebSocket route enforces them:
+
+```ts
+createHonoYorm(yorm, { upgradeWebSocket, rolePolicies: [receptionist, nurse] });
+```
+
+When a connection's `?role=` matches a policy for the document type, it
+joins a **per-(document, role)** room that syncs the lens's derived doc:
+
+- **reads** are redacted to the policy's `view` — hidden data never reaches
+  the socket (the lens doc is the confidentiality boundary);
+- **writes** are validated by the policy's `canWrite`; a violating update is
+  never applied and the socket is closed with `1008` (mirroring the
+  canonical-write guard); allowed changes are written back to the canonical
+  doc, so canonical rooms and other lens rooms see them (and vice versa).
+
+Roles without a policy keep the canonical rooms above, unchanged. A real
+deployment must derive the role from the authenticated principal (session /
+token) inside `onAuthorize` — the query param alone is a claim, not a proof.
+
+**POC caveat:** the HTTP routes are not policy-aware yet — deny REST access
+for lens roles via `onAuthorize`/`onAuthorizeWrite`.
+
 ## Options
 
 ```ts
@@ -171,6 +201,7 @@ interface HonoYormOptions {
     docRef: { type: string; id: string },
     scope: "canonical" | "proposals",
   ) => boolean | Promise<boolean>; // per-subtree write rules (PLAN.md M7)
+  rolePolicies?: RolePolicy[]; // policy-lens roles (role-security POC), see above
   defaultPolicy?: ProjectionTriggerPolicy; // applied when a session is opened
   maxLagMs?: number; // plugin-level safety flush cap for deferred policies
   upgradeWebSocket?: UpgradeWebSocket; // lets createHonoYorm mount /ws itself

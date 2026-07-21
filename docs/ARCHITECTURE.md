@@ -77,15 +77,15 @@ contacts examples); the two runnable examples are
 All vitest counts from the current suite (165 tests total, plus 5 Playwright
 e2e specs in the collab demo).
 
-| Package                                                                      | Public API (main entry points)                                                                                                                                                    | Tests |
-| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| [@yorm/core](../packages/core/README.md)                                     | `defineMapping`, `one`, `many`, `planProjection`, store contracts (`DocumentStore`, `ProjectionStore` incl. optional `listFailures`), `Origin` provenance                         | 26    |
-| [@yorm/yjs](../packages/yjs/README.md)                                       | `createYorm`, `memoryRuntime`, `jsonCodec`, `applyJsonPatchLike`, `ProjectionScheduler`, `proposalsApi`, `proposalTrackingMapping`, `replayProjections`, `retryFailedProjections` | 63    |
-| [@yorm/hono](../packages/hono/README.md)                                     | `createHonoYorm` (docs CRUD, projection-state, flush, proposals routes, `/ws` y-protocols endpoint, `onAuthorize`/`onAuthorizeWrite` hooks)                                       | 21    |
-| [@yorm/drizzle](../packages/drizzle/README.md)                               | `createSqliteAdapter`, `drizzleDocumentStore`, `drizzleProjectionStore`, `adapterConformanceTests`, `resolveBackend` (`YORM_DB`)                                                  | 18    |
-| [@yorm/fhir](../packages/fhir/README.md)                                     | `fhirResource` codec, `fhirElementId`, `ensureElementIds`, extension helpers                                                                                                      | 27    |
-| [example-fhir-patient-contacts](../examples/fhir-patient-contacts/README.md) | POC server/seed/demo, `fhir.Patient@1` mapping, contacts import codec, round-trip + replay suites                                                                                 | 10    |
-| [patient-collab-demo](../examples/patient-collab-demo/README.md)             | Vite + React + Zustand + eSheet demo (roles, policies, proposals, live rows panel)                                                                                                | 5 e2e |
+| Package                                                                      | Public API (main entry points)                                                                                                                                                                                            | Tests |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| [@yorm/core](../packages/core/README.md)                                     | `defineMapping`, `one`, `many`, `planProjection`, store contracts (`DocumentStore`, `ProjectionStore` incl. optional `listFailures`), `Origin` provenance                                                                 | 26    |
+| [@yorm/yjs](../packages/yjs/README.md)                                       | `createYorm`, `memoryRuntime`, `jsonCodec`, `applyJsonPatchLike`, `ProjectionScheduler`, `proposalsApi`, `proposalTrackingMapping`, `defineRolePolicy`, `createPolicyLens`, `replayProjections`, `retryFailedProjections` | 74    |
+| [@yorm/hono](../packages/hono/README.md)                                     | `createHonoYorm` (docs CRUD, projection-state, flush, proposals routes, `/ws` y-protocols endpoint, `onAuthorize`/`onAuthorizeWrite` hooks, `rolePolicies` lens rooms)                                                    | 28    |
+| [@yorm/drizzle](../packages/drizzle/README.md)                               | `createSqliteAdapter`, `drizzleDocumentStore`, `drizzleProjectionStore`, `adapterConformanceTests`, `resolveBackend` (`YORM_DB`)                                                                                          | 18    |
+| [@yorm/fhir](../packages/fhir/README.md)                                     | `fhirResource` codec, `fhirElementId`, `ensureElementIds`, extension helpers                                                                                                                                              | 27    |
+| [example-fhir-patient-contacts](../examples/fhir-patient-contacts/README.md) | POC server/seed/demo, `fhir.Patient@1` mapping, contacts import codec, round-trip + replay suites                                                                                                                         | 10    |
+| [patient-collab-demo](../examples/patient-collab-demo/README.md)             | Vite + React + Zustand + eSheet demo (roles, policies, proposals, live rows panel)                                                                                                                                        | 5 e2e |
 
 ## README vision vs. current state
 
@@ -101,6 +101,7 @@ The root README is intentionally the long-range design document. Honest map:
 | Multi-backend persistence (PGlite/Postgres/MariaDB/Mongo) | Planned as [PLAN.md Milestone 9](../PLAN.md#milestone-9--horizontal-additional-backends); the conformance suite is ready              |
 | FHIR validation / terminology                             | Out of scope by design (README "Non-goals")                                                                                           |
 | Proposed changes (suggestion mode)                        | **Implemented** (M7): intents subtree, accept/reject/stale handling, role enforcement, `yorm_proposal` tracking projection            |
+| Per-role redaction & write rules (policy lens)            | **POC** (role-security branch): `defineRolePolicy`/`createPolicyLens` + `rolePolicies` WS lens rooms; HTTP routes not policy-aware    |
 | Projection trigger policies                               | **Implemented** (Decision #10): see summary below                                                                                     |
 
 ## Adapter contract
