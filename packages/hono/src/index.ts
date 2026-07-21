@@ -9,7 +9,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import type { UpgradeWebSocket } from "hono/ws";
-import type { ProjectionTriggerPolicy, Yorm } from "@yorm/yjs";
+import type { ProjectionTriggerPolicy, RolePolicy, Yorm } from "@yorm/yjs";
 
 import { createHttpRoutes } from "./http/index.js";
 import { createSessionCache } from "./shared.js";
@@ -43,6 +43,17 @@ export interface HonoYormOptions {
     docRef: { type: string; id: string },
     scope: WriteScope,
   ) => boolean | Promise<boolean>;
+  /**
+   * Role policies (role-security POC): when a WebSocket connection's
+   * `?role=` matches a policy for the document type, the connection syncs a
+   * server-held **policy lens** — a derived doc holding only the role's
+   * `view` — instead of the canonical doc, and every incoming update is
+   * validated by the policy's `canWrite` (violations close the socket with
+   * 1008). Roles without a policy are untouched. **POC caveat:** the HTTP
+   * routes are not policy-aware yet — deny REST access for lens roles via
+   * `onAuthorize`/`onAuthorizeWrite`.
+   */
+  rolePolicies?: RolePolicy[];
   /**
    * Projection trigger policy applied when the plugin opens a document
    * session. Defaults to the Yorm instance's own default (passthrough).

@@ -13,8 +13,8 @@ import * as encoding from "lib0/encoding";
 import * as awarenessProtocol from "y-protocols/awareness";
 import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
-import { DEFAULT_ROOT_KEY } from "@yorm/yjs";
-import type { DocumentSession } from "@yorm/yjs";
+import { DEFAULT_ROOT_KEY, createPolicyLens, policyFor } from "@yorm/yjs";
+import type { DocumentSession, PolicyLens } from "@yorm/yjs";
 
 import type { HonoYormOptions, WriteScope } from "../index.js";
 import type { SessionCache } from "../shared.js";
@@ -34,9 +34,23 @@ function toFrame(encoder: encoding.Encoder): BinaryFrame {
   return encoding.toUint8Array(encoder) as BinaryFrame;
 }
 
-/** Per-document room: connected sockets plus the shared awareness instance. */
+/**
+ * What a room syncs against: the canonical session, or a policy lens's
+ * derived doc (role-security POC). Both expose the same structural surface.
+ */
+interface SyncSource {
+  doc: Y.Doc;
+  subscribe(listener: (update: Uint8Array) => void): () => void;
+}
+
+/** Per-document (or per document+role) room: sockets plus shared awareness. */
 interface Room {
+  /** The doc this room's sockets sync (canonical session or policy lens). */
+  source: SyncSource;
+  /** The underlying canonical session (policy target for `?policy=`). */
   session: DocumentSession;
+  /** Non-null when this room serves a role with a policy lens. */
+  lens: PolicyLens | null;
   awareness: awarenessProtocol.Awareness;
   sockets: Set<AnySocket>;
   /** Awareness client ids introduced by each socket (removed on close). */
@@ -136,11 +150,18 @@ function updatePayloadOf(data: Uint8Array): Uint8Array | null {
   return null;
 }
 
-function createRoom(session: DocumentSession, onEmpty: () => void): Room {
-  const awareness = new awarenessProtocol.Awareness(session.doc);
+function createRoom(
+  source: SyncSource,
+  session: DocumentSession,
+  lens: PolicyLens | null,
+  onEmpty: () => void,
+): Room {
+  const awareness = new awarenessProtocol.Awareness(source.doc);
   awareness.setLocalState(null); // the server has no presence of its own
   const room: Room = {
+    source,
     session,
+    lens,
     awareness,
     sockets: new Set(),
     controlledIds: new Map(),
@@ -148,9 +169,9 @@ function createRoom(session: DocumentSession, onEmpty: () => void): Room {
     unsubscribe: () => {},
   };
 
-  // Broadcast every persisted doc update (from sockets, HTTP writes, or any
-  // other session) to all sockets except the message's origin socket.
-  const unsubscribeDoc = session.subscribe((update) => {
+  // Broadcast every source update (from sockets, HTTP writes, or any other
+  // session/lens refresh) to all sockets except the message's origin socket.
+  const unsubscribeDoc = source.subscribe((update) => {
     const payload = encodeDocUpdate(update);
     for (const socket of room.sockets) {
       if (socket !== room.currentOrigin) {
@@ -190,6 +211,7 @@ function createRoom(session: DocumentSession, onEmpty: () => void): Room {
     unsubscribeDoc();
     awareness.off("update", onAwarenessUpdate);
     awareness.destroy();
+    lens?.close();
     onEmpty();
   };
   return room;
@@ -222,15 +244,21 @@ export function createWebSocketRoutes(
   const app = new Hono();
   const rooms = new Map<string, Room>();
 
-  const getRoom = async (type: string, id: string): Promise<Room> => {
-    const key = `${type}/${id}`;
+  const getRoom = async (type: string, id: string, role: string | undefined): Promise<Room> => {
+    const policy = policyFor(options.rolePolicies, type, role);
+    // Lens rooms are per (document, role) so every socket in a room sees the
+    // same derived doc; canonical rooms stay per document.
+    const key = policy ? `${type}/${id}#role=${role}` : `${type}/${id}`;
     let room = rooms.get(key);
     if (!room) {
       const session = await sessions.get(type, id);
       // Re-check: a concurrent open may have created the room while awaiting.
       room = rooms.get(key);
       if (!room) {
-        room = createRoom(session, () => rooms.delete(key));
+        const lens = policy
+          ? createPolicyLens(session, policy, { role: role!, documentType: type, documentId: id })
+          : null;
+        room = createRoom(lens ?? session, session, lens, () => rooms.delete(key));
         rooms.set(key, room);
       }
     }
@@ -242,9 +270,13 @@ export function createWebSocketRoutes(
     upgradeWebSocket(async (c): Promise<WSEvents<unknown>> => {
       const type = c.req.param("type") ?? "";
       const id = c.req.param("id") ?? "";
-      // ?role=proposer connections may only write the proposals subtree;
-      // everything else is a canonical writer (v1: no read-only sockets).
-      const scope: WriteScope = c.req.query("role") === "proposer" ? "proposals" : "canonical";
+      const role = c.req.query("role");
+      // Role precedence: a role with a policy syncs through its lens (the
+      // policy governs reads and writes); `?role=proposer` connections may
+      // only write the proposals subtree; everything else is a canonical
+      // writer (v1: no read-only sockets).
+      const hasLens = policyFor(options.rolePolicies, type, role) !== null;
+      const scope: WriteScope = !hasLens && role === "proposer" ? "proposals" : "canonical";
       if (
         !(await authorize(c, options, type, id)) ||
         !(await authorizeWrite(c, options, type, id, scope))
@@ -256,7 +288,7 @@ export function createWebSocketRoutes(
         };
       }
       const guardCanonical = scope === "proposals";
-      const room = await getRoom(type, id);
+      const room = await getRoom(type, id, hasLens ? role : undefined);
       const policy = policyFromQuery(c.req.query("policy"), c.req.query("idleMs"));
       return {
         onOpen(_evt, ws) {
@@ -265,7 +297,7 @@ export function createWebSocketRoutes(
           if (policy !== null) {
             room.session.setPolicy(policy);
           }
-          ws.send(encodeSyncStep1(room.session.doc));
+          ws.send(encodeSyncStep1(room.source.doc));
           const states = room.awareness.getStates();
           if (states.size > 0) {
             ws.send(encodeAwareness(room.awareness, [...states.keys()]));
@@ -279,6 +311,26 @@ export function createWebSocketRoutes(
           const decoder = decoding.createDecoder(data);
           switch (decoding.readVarUint(decoder)) {
             case MESSAGE_SYNC: {
+              if (room.lens) {
+                const payload = updatePayloadOf(data);
+                if (payload !== null) {
+                  // Doc-mutating message: route it through the lens (policy
+                  // validation + canonical write-back). Fan-out is
+                  // synchronous, so mark this socket as the origin.
+                  room.currentOrigin = ws;
+                  try {
+                    const result = room.lens.applyClientUpdate(payload);
+                    if (!result.allowed) {
+                      ws.close(1008, result.reason);
+                    }
+                  } finally {
+                    room.currentOrigin = null;
+                  }
+                  return;
+                }
+                // SyncStep1 never mutates the doc — fall through and reply
+                // with the lens doc's state.
+              }
               if (guardCanonical) {
                 const payload = updatePayloadOf(data);
                 if (payload !== null && guardCanonicalWrites(room.session.doc, payload)) {
@@ -293,7 +345,7 @@ export function createWebSocketRoutes(
               // so mark this socket as the origin for the duration.
               room.currentOrigin = ws;
               try {
-                syncProtocol.readSyncMessage(decoder, encoder, room.session.doc, ws);
+                syncProtocol.readSyncMessage(decoder, encoder, room.source.doc, ws);
               } finally {
                 room.currentOrigin = null;
               }
