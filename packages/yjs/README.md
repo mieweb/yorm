@@ -144,7 +144,7 @@ list (`readProposals(doc)`) instead of the codec output. Pending proposals
 appear in `yorm_proposal` rows while **never** appearing in canonical-mapping
 rows.
 
-Server-side role enforcement (proposer vs. editor) lives in
+Server-side write-mode enforcement (proposer vs. editor) lives in
 [@yorm/hono](../hono/README.md) (`onAuthorizeWrite` + the WebSocket
 canonical-write guard).
 

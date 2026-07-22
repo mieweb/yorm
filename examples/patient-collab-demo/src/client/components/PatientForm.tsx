@@ -185,7 +185,7 @@ function SyncedPatientForm({
 }: SyncedPatientFormProps): React.JSX.Element {
   const rendererRef = useRef<EsheetRendererHandle>(null);
   const [formStore, setFormStore] = useState<FormStore | null>(null);
-  const role = useCollabStore((state) => state.role);
+  const mode = useCollabStore((state) => state.mode);
   const patient = useCollabStore((state) => state.patient);
   const peers = useCollabStore((state) => state.peers);
   const proposals = useCollabStore((state) => state.proposals);
@@ -244,11 +244,11 @@ function SyncedPatientForm({
     return {
       presenceByField,
       proposalsByField,
-      canResolve: role === "editor",
+      canResolve: mode === "editor",
       onProposalAction: (_fieldId, proposalId, action) => void resolve(proposalId, action),
       formatValue: formatFieldValue,
     };
-  }, [peers, suggestions, conflicts, role, resolve]);
+  }, [peers, suggestions, conflicts, mode, resolve]);
 
   // Yjs → eSheet: push differing values into the renderer's form store.
   useEffect(() => {
@@ -313,7 +313,7 @@ function SyncedPatientForm({
     const previous = previousProposals.current;
     previousProposals.current = proposals;
     const state = useCollabStore.getState();
-    if (!formStore || state.role !== "proposer" || !state.patient) {
+    if (!formStore || state.mode !== "proposer" || !state.patient) {
       return;
     }
     for (const before of previous) {
@@ -363,7 +363,7 @@ function SyncedPatientForm({
       }}
     >
       <p className="patient-form-hint">
-        {role === "proposer" ? t("form.proposerHint") : t("form.subtitle")}
+        {mode === "proposer" ? t("form.proposerHint") : t("form.subtitle")}
       </p>
       <EsheetRenderer
         ref={rendererRef}

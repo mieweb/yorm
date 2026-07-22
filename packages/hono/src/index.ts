@@ -33,7 +33,7 @@ export interface HonoYormOptions {
    * `onAuthorize` before any write. Scope is `"canonical"` for PUT/PATCH and
    * proposal resolution (accepting writes canonical state), `"proposals"`
    * for creating/withdrawing proposals. On WebSocket connections the scope
-   * is chosen by the `?role=proposer` query param: proposer connections need
+   * is chosen by the `?mode=proposer` query param: proposer connections need
    * `"proposals"` write access and have direct canonical edits refused (see
    * `guardCanonicalWrites`); all other connections need `"canonical"`.
    * Absent hook means allow. Returning `false` yields 403 / close 1008.

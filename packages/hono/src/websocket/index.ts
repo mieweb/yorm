@@ -104,7 +104,7 @@ function toUint8Array(data: WSMessageReceive): Uint8Array | null {
 }
 
 /**
- * Proposer-role canonical-write guard (PLAN.md M7, decision #11).
+ * Proposer-mode canonical-write guard (PLAN.md M7, decision #11).
  *
  * Returns `true` when applying `update` would change the canonical subtree
  * (`doc.getMap(rootKey)`): the live doc's state is replayed onto a scratch
@@ -271,12 +271,14 @@ export function createWebSocketRoutes(
       const type = c.req.param("type") ?? "";
       const id = c.req.param("id") ?? "";
       const role = c.req.query("role");
-      // Role precedence: a role with a policy syncs through its lens (the
-      // policy governs reads and writes); `?role=proposer` connections may
+      // `?role=` names WHO is connecting (policy-lens roles); `?mode=` names
+      // HOW they write. A role with a policy syncs through its lens (the
+      // policy governs reads and writes); `?mode=proposer` connections may
       // only write the proposals subtree; everything else is a canonical
       // writer (v1: no read-only sockets).
       const hasLens = policyFor(options.rolePolicies, type, role) !== null;
-      const scope: WriteScope = !hasLens && role === "proposer" ? "proposals" : "canonical";
+      const scope: WriteScope =
+        !hasLens && c.req.query("mode") === "proposer" ? "proposals" : "canonical";
       if (
         !(await authorize(c, options, type, id)) ||
         !(await authorizeWrite(c, options, type, id, scope))

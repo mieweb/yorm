@@ -33,7 +33,7 @@ import "./patient-editor.scss";
 
 export function PatientEditor(): React.JSX.Element | null {
   const patient = useCollabStore((state) => state.patient);
-  const role = useCollabStore((state) => state.role);
+  const mode = useCollabStore((state) => state.mode);
   const peers = useCollabStore((state) => state.peers);
   const proposals = useCollabStore((state) => state.proposals);
   const actions = useProposalActions();
@@ -47,7 +47,7 @@ export function PatientEditor(): React.JSX.Element | null {
   return (
     <div className="patient-editor">
       <p className="patient-editor-hint">
-        {role === "proposer" ? t("form.proposerHint") : t("form.subtitle")}
+        {mode === "proposer" ? t("form.proposerHint") : t("form.subtitle")}
       </p>
       <p className="patient-editor-id">
         <span className="patient-editor-id-label">{t("editor.resourceId")}</span>
@@ -64,7 +64,7 @@ export function PatientEditor(): React.JSX.Element | null {
                 patient={patient}
                 openProposals={open}
                 peers={peers}
-                editorRole={role === "editor"}
+                editorMode={mode === "editor"}
                 actions={actions}
               />
             ))}
@@ -94,12 +94,12 @@ interface DenseFieldProps {
   patient: Patient;
   openProposals: ChangeIntent[];
   peers: Peer[];
-  editorRole: boolean;
+  editorMode: boolean;
   actions: ProposalActions;
 }
 
 function DenseField(props: DenseFieldProps): React.JSX.Element {
-  const { spec, patient, openProposals, peers, editorRole, actions } = props;
+  const { spec, patient, openProposals, peers, editorMode, actions } = props;
   // While focused, the local draft wins over the canonical value so typing
   // is never round-tripped through the doc (and proposer keystrokes — which
   // do not change the canonical value — stay visible until blur).
@@ -202,7 +202,7 @@ function DenseField(props: DenseFieldProps): React.JSX.Element {
           spec={spec}
           proposal={proposal}
           adornmentId={adornmentId}
-          editorRole={editorRole}
+          editorMode={editorMode}
           actions={actions}
         />
       )}
@@ -214,30 +214,30 @@ interface InlineSuggestionProps {
   spec: DenseFieldSpec;
   proposal: ChangeIntent;
   adornmentId: string;
-  editorRole: boolean;
+  editorMode: boolean;
   actions: ProposalActions;
 }
 
 /** The compact suggestion adornment rendered right next to the field. */
 function InlineSuggestion(props: InlineSuggestionProps): React.JSX.Element {
-  const { spec, proposal, adornmentId, editorRole, actions } = props;
+  const { spec, proposal, adornmentId, editorMode, actions } = props;
   const conflicted = proposal.id in actions.conflicts;
   return (
     <span
       id={adornmentId}
-      className={`dense-suggestion${editorRole ? "" : " dense-suggestion-pending"}`}
+      className={`dense-suggestion${editorMode ? "" : " dense-suggestion-pending"}`}
     >
       <span className="dense-suggestion-value">
         {t("review.proposed", { value: formatFieldValue(proposal.proposedValue) })}
       </span>
       <span className="dense-suggestion-actor">{t("review.actor", { actor: proposal.actor })}</span>
-      {!editorRole && <span className="dense-suggestion-actor">{t("suggestion.pendingHint")}</span>}
+      {!editorMode && <span className="dense-suggestion-actor">{t("suggestion.pendingHint")}</span>}
       {conflicted && (
         <span className="dense-suggestion-conflict" role="alert">
           {t("review.conflict", { value: formatFieldValue(actions.conflicts[proposal.id]) })}
         </span>
       )}
-      {editorRole && (
+      {editorMode && (
         <span className="dense-suggestion-actions">
           {conflicted ? (
             <Button

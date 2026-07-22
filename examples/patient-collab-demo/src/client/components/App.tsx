@@ -16,7 +16,7 @@ import { PolicyBar } from "./PolicyBar";
 import { PresenceBar } from "./PresenceBar";
 import { ProjectionPanel } from "./ProjectionPanel";
 import { ReviewPanel } from "./ReviewPanel";
-import { RoleSwitcher } from "./RoleSwitcher";
+import { ModeSwitcher } from "./ModeSwitcher";
 import { ViewToggle } from "./ViewToggle";
 import "./app-shell.scss";
 
@@ -47,7 +47,7 @@ export function App(): React.JSX.Element {
         <div className="app-status">
           <PresenceBar />
           <ViewToggle />
-          <RoleSwitcher />
+          <ModeSwitcher />
           <Badge variant={STATUS_VARIANT[status]} aria-label={t("connection.label")}>
             {STATUS_LABEL[status]}
           </Badge>

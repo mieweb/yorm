@@ -107,15 +107,16 @@ Query params:
   policy on open (see [PLAN.md decision #10](../../PLAN.md)); invalid values
   are ignored.
 - `?idleMs=<ms>` — debounce for `policy=idle`.
-- `?role=proposer` — the connection may only write the **proposals** subtree;
-  see “Roles & the canonical-write guard” below.
+- `?mode=proposer` — the connection may only write the **proposals** subtree;
+  see “Write modes & the canonical-write guard” below.
 - `?role=<role>` matching a policy in `options.rolePolicies` — the connection
   syncs a redacted **policy lens** instead of the canonical doc; see “Role
-  policies” below.
+  policies” below. (`?mode=` names HOW a connection writes; `?role=` names
+  WHO is connecting.)
 
-### Roles & the canonical-write guard (PLAN.md M7)
+### Write modes & the canonical-write guard (PLAN.md M7)
 
-A WebSocket connection's write scope is chosen at upgrade time: `?role=proposer`
+A WebSocket connection's write scope is chosen at upgrade time: `?mode=proposer`
 connections are authorized via `onAuthorizeWrite(ctx, docRef, "proposals")`,
 all others via `onAuthorizeWrite(ctx, docRef, "canonical")` (refusal closes
 with `1008`; v1 has no read-only sockets).

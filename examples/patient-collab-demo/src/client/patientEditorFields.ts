@@ -3,7 +3,7 @@
  * generalization of `patientFields.ts` for the custom dense editor: every
  * element of the Patient object gets a spec with a unique i18n'd label, a
  * `read` from the materialized JSON, a `write` into the Y.Doc root, and the
- * proposal path / value conversion the proposer role needs. Array-backed
+ * proposal path / value conversion the proposer mode needs. Array-backed
  * sections (identifier, name, telecom, address) emit one spec group per
  * entry, so the whole object is editable — while `unmappedExtras` collects
  * everything the editor does NOT cover as read-only JSON chips ("keep the

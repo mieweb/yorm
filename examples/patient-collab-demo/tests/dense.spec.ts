@@ -48,7 +48,7 @@ test("unmapped field (gender) converges but is never projected", async ({ browse
 
 test("inline accept next to the field applies the suggestion", async ({ browser }) => {
   const editor = await openEditor(browser);
-  const proposer = await openEditor(browser, "/?role=proposer");
+  const proposer = await openEditor(browser, "/?mode=proposer");
   const family = `Inline-${runId}`;
 
   const proposalId = await propose(proposer, t("form.family"), family);
@@ -76,7 +76,7 @@ test("inline accept next to the field applies the suggestion", async ({ browser 
 
 test("Accept all mass-applies every open suggestion", async ({ browser }) => {
   const editor = await openEditor(browser);
-  const proposer = await openEditor(browser, "/?role=proposer");
+  const proposer = await openEditor(browser, "/?mode=proposer");
   const phone = `(02) 5551 ${runId}`;
   const email = `mass-${runId}@example.org`;
 

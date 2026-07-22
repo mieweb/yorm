@@ -28,7 +28,7 @@ function fieldLabelFor(patient: Patient | null, proposal: ChangeIntent): string 
 }
 
 export function ReviewPanel(): React.JSX.Element {
-  const role = useCollabStore((state) => state.role);
+  const mode = useCollabStore((state) => state.mode);
   const patient = useCollabStore((state) => state.patient);
   const proposals = useCollabStore((state) => state.proposals);
   const actions = useProposalActions();
@@ -38,7 +38,7 @@ export function ReviewPanel(): React.JSX.Element {
   // contradiction. The toggle keeps the full audit trail one click away.
   const [showResolved, setShowResolved] = useState(false);
 
-  const isEditor = role === "editor";
+  const isEditor = mode === "editor";
   const open = proposals.filter((proposal) => proposal.status === "proposed");
   // Open first (oldest → newest), then resolved (newest resolution first).
   const resolved = proposals.filter((proposal) => proposal.status !== "proposed").reverse();

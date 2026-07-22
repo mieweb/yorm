@@ -54,9 +54,9 @@ describe("@yorm/hono WebSocket route", () => {
       createHonoYorm(yorm, {
         upgradeWebSocket,
         onAuthorize: (ctx) => ctx.req.query("token") !== "bad",
-        // Proposer-role connections may only write the proposals subtree.
+        // Proposer-mode connections may only write the proposals subtree.
         onAuthorizeWrite: (ctx, _docRef, scope) =>
-          (ctx.req.query("role") ?? "editor") === "proposer" ? scope === "proposals" : true,
+          (ctx.req.query("mode") ?? "editor") === "proposer" ? scope === "proposals" : true,
       }),
     );
     await new Promise<void>((resolve) => {
@@ -129,7 +129,7 @@ describe("@yorm/hono WebSocket route", () => {
   });
 
   it("proposer WS: proposals-subtree updates flow, canonical edits are refused", async () => {
-    const proposer = connect("/yorm/ws/Patient/p3?role=proposer");
+    const proposer = connect("/yorm/ws/Patient/p3?mode=proposer");
     await until(() => proposer.synced, "proposer synced");
 
     // A proposal from the proposer connection syncs to the server…
