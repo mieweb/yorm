@@ -306,7 +306,11 @@ function connectProvider(mode: DemoMode): void {
     `${wsProtocol}//${location.host}/yorm/ws`,
     `${DOC_TYPE}/${DOC_ID}`,
     doc,
-    { params: { mode, role } },
+    // BroadcastChannel would sync same-origin tabs directly, bypassing the
+    // server — a physician tab would pour the full canonical doc into a
+    // receptionist tab, which the policy lens then rightly refuses (an
+    // endless 1008 loop). Roles differ per tab, so tabs must not shortcut.
+    { params: { mode, role }, disableBc: true },
   );
 
   provider.awareness.setLocalState({
