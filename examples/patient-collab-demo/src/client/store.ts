@@ -323,6 +323,17 @@ function connectProvider(mode: DemoMode): void {
     });
   });
 
+  // Policy deny (1008): the policy lens refused one of this doc's updates
+  // and closed the socket. The refused change is baked into the local CRDT
+  // state, so y-websocket's auto-reconnect would re-send it and be refused
+  // again, forever. Discard the local doc and resync the server's view.
+  provider.on("connection-close", (event: { code?: number } | null) => {
+    if (event?.code === 1008) {
+      provider?.destroy();
+      location.reload();
+    }
+  });
+
   provider.awareness.on("change", () => {
     const previous = useCollabStore.getState().peers.length;
     const peers = readPeers(provider!.awareness);
