@@ -15,12 +15,18 @@ body {
 
 .app-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--mieweb-border);
   background: var(--mieweb-card);
+}
+
+/* Claim a sensible minimum so the title wraps as a block, not word-by-word. */
+.app-heading {
+  flex: 1 1 16rem;
 }
 
 .app-title {
@@ -37,6 +43,7 @@ body {
 
 .app-status {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
 }
