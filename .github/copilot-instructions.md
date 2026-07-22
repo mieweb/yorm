@@ -114,22 +114,44 @@
 
 ## Project Overview
 
-Finicky is a native macOS default-browser router. **The single source of truth for the
-technical stack, repository layout, and build pipeline is [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)** —
+YORM is a TypeScript monorepo (pnpm workspaces, Node >= 20) for projecting canonical
+Yjs documents into relational stores. **The single source of truth for the technical
+stack, repository layout, and build pipeline is [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)** —
 read it first and do not duplicate that information here.
 
 Project-specific conventions (the rest of this file is generic guidance):
 
-- **Build/test through `scripts/`**, never ad-hoc commands: `./scripts/install.sh`,
-  `./scripts/build.sh`, `./scripts/test.sh`, `./scripts/dev.sh`. Keep these scripts as the
-  one place build logic lives.
-- **Use `npm`** for the TypeScript packages (`config-api`, `finicky-ui`) — the committed
-  `package-lock.json` is authoritative, despite a stray `packageManager: pnpm` field.
-- **Go + cgo/Objective-C**: the macOS app lives in `apps/finicky/src`. Native glue comes in
-  matched `.go`/`.h`/`.m` sets — change them together.
-- **User config runs in Goja**, not Node. Don't assume Node/browser globals are available.
+- **Use `pnpm`** (pinned via `packageManager` / corepack) — the committed
+  `pnpm-lock.yaml` is authoritative. Library code lives in `packages/*`
+  (`core`, `drizzle`, `fhir`, `hono`, `yjs`); runnable stacks live in `examples/*`.
+- **Build/test at the workspace root**: `pnpm build` (`tsc -b`), `pnpm test` (vitest),
+  `pnpm lint`, `pnpm ci`. Compile the workspace before building an example — the
+  examples import other packages through their built `dist/` subpath exports.
+- **`vendor/eSheet` is a git submodule** built from source. After a fresh clone run
+  `git submodule update --init --recursive` then
+  `pnpm --filter patient-collab-demo esheet:build` before building that demo.
+- **Native deps**: `better-sqlite3` compiles on install, so the host needs a C/C++
+  toolchain (`build-essential`, `python3`).
 - When the stack or build flow changes, update `docs/ARCHITECTURE.md` (one place) rather
   than restating details elsewhere.
+
+## Deployment
+
+The `patient-collab-demo` server runs in production on port **3000**, fronted by an
+nginx reverse proxy at **yorm.os.mieweb.org**. It is managed by a systemd unit —
+see [deploy/README.md](../deploy/README.md) for the authoritative build/install/operate
+steps; do not duplicate them here.
+
+- **Unit**: [deploy/yorm.service](../deploy/yorm.service) is version-controlled and
+  copied to `/etc/systemd/system/yorm.service`. It runs `pnpm start`
+  (`tsx src/server.ts`) as user `horner` with `PORT=3000`, `Restart=on-failure`, and is
+  `enable`d to start on boot.
+- **The unit only runs the server** — it does not build. After pulling code, rebuild
+  (`pnpm build` + `pnpm --filter patient-collab-demo build`) then
+  `sudo systemctl restart yorm.service`.
+- **Logs / status**: `journalctl -u yorm.service -f`, `systemctl status yorm.service`.
+- nginx must forward to `http://localhost:3000` with WebSocket upgrade headers for the
+  `/yorm/ws/...` collaboration endpoint.
 
 ## Code Quality Principles
 
