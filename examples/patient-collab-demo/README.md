@@ -126,6 +126,31 @@ SQLite projection commits.
 The "unsaved projection changes" indicator polls
 `GET /yorm/docs/Patient/p-demo/projection-state`.
 
+## Roles — the policy lens (role-security POC)
+
+The header's **Role** select names WHO is connecting (the **Mode** select
+names HOW a connection writes). Roles with a policy sync a **derived,
+redacted Y.Doc** served by the `@yorm/hono` policy lens — hidden fields never
+reach the browser, and every write is validated server-side before it merges
+back into the canonical document (see the
+[@yorm/yjs role policies](../../packages/yjs/README.md#role-policies--the-policy-lens-role-security-poc)):
+
+| Role         | Sees                                      | May edit           |
+| ------------ | ----------------------------------------- | ------------------ |
+| Physician    | everything (no policy — canonical doc)    | everything         |
+| Nurse        | everything                                | telecom, addresses |
+| Receptionist | demographics only (no addresses/ids/exts) | names, telecom     |
+
+The policies live in [src/rolePolicies.ts](src/rolePolicies.ts), shared by
+the server (which passes them as `rolePolicies` to `createHonoYorm`) and the
+client (which renders protected sections read-only — cosmetic only, the lens
+enforces). The role travels as `?role=` on the WebSocket URL; switching roles
+reloads the page because a lens role syncs a different (derived) server
+document, so the client needs a fresh Y.Doc. Try it: open one window as
+physician and another at `/?role=receptionist` — the receptionist never
+receives the address, yet a name fix flows back to the physician live.
+[tests/roles.spec.ts](tests/roles.spec.ts) covers both directions.
+
 ## Write modes & proposed changes (M7c)
 
 The header's **Mode** select switches between:

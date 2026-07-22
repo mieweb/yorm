@@ -45,6 +45,8 @@ export interface DenseFieldSpec extends FieldWriteSpec {
 export interface DenseSection {
   id: string;
   label: string;
+  /** Top-level Patient keys the section's fields write — role gating. */
+  topKeys: readonly string[];
   fields: DenseFieldSpec[];
 }
 
@@ -166,8 +168,18 @@ const SECTION_LABELS = {
   extensions: "editor.section.extensions",
 } as const satisfies Record<string, StringKey>;
 
+/** The top-level Patient keys each section's fields write. */
+const SECTION_KEYS: Record<keyof typeof SECTION_LABELS, readonly string[]> = {
+  identity: ["active", "gender", "birthDate", "photo"],
+  identifiers: ["identifier"],
+  names: ["name"],
+  telecom: ["telecom"],
+  addresses: ["address"],
+  extensions: ["extension"],
+};
+
 function section(id: keyof typeof SECTION_LABELS, fields: DenseFieldSpec[]): DenseSection {
-  return { id, label: t(SECTION_LABELS[id]), fields };
+  return { id, label: t(SECTION_LABELS[id]), topKeys: SECTION_KEYS[id], fields };
 }
 
 /**

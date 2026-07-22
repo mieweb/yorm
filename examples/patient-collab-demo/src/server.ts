@@ -11,6 +11,9 @@
  *   subtree — direct canonical writes (PUT/PATCH/accept/reject) get 403,
  *   and the plugin's `?mode=proposer` WebSocket guard closes any socket
  *   that tries a canonical edit (1008),
+ * - policy-lens roles (role-security POC): `?role=receptionist|nurse` on a
+ *   WebSocket upgrade syncs a per-role redacted view with server-enforced
+ *   write rules ([src/rolePolicies.ts](./rolePolicies.ts)),
  * - the `yorm_proposal` tracking projection (`proposalTrackingMapping`) so
  *   open/resolved proposals are visible as SQL rows,
  * - `GET /api/rows` — the live contact-table + `yorm_proposal` rows for the
@@ -32,6 +35,8 @@ import {
 import { CONTACT_TABLES } from "example-fhir-patient-contacts/schema";
 import { proposalTrackingMapping } from "@yorm/yjs";
 
+import { demoRolePolicies } from "./rolePolicies.js";
+
 const PATIENT_ID = "p-demo";
 const port = Number(process.env.PORT ?? 5178);
 
@@ -50,6 +55,11 @@ const poc = createPocServer({
     // Proposers may write the proposals subtree but never canonical state;
     // editors may write both.
     onAuthorizeWrite: (c, _docRef, scope) => scope === "proposals" || demoMode(c) !== "proposer",
+    // Policy-lens roles (role-security POC): `?role=receptionist|nurse` on a
+    // WebSocket upgrade syncs a derived, redacted Y.Doc instead of the
+    // canonical one — see src/rolePolicies.ts. No `?role=` (or physician)
+    // means full canonical access.
+    rolePolicies: demoRolePolicies,
   },
 });
 

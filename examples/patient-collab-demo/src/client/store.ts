@@ -38,6 +38,8 @@ import type { AcceptResult, DemoMode, PolicyKind, RowsSnapshot } from "./api";
 import { t } from "./i18n";
 import { getFieldSpec } from "./patientFields";
 import type { FieldWriteSpec, PatientFieldId } from "./patientFields";
+import { parseDemoRole } from "../rolePolicies";
+import type { DemoRole } from "../rolePolicies";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
@@ -62,6 +64,12 @@ export interface CollabState {
   rows: RowsSnapshot | null;
   /** Demo mode (M7c): editors write Y directly, proposers only suggest. */
   mode: DemoMode;
+  /**
+   * Policy-lens role (role-security POC): WHO is connecting. Fixed per page
+   * load (`?role=` param) — switching roles reloads with a fresh Y.Doc,
+   * because a lens role syncs a different (redacted) server document.
+   */
+  role: DemoRole;
   /** Which Patient editor is shown (header toggle, `?view=` param). */
   view: ViewKind;
   /** The local presence name — used as the proposal actor / resolver. */
@@ -100,6 +108,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   pendingProjection: false,
   rows: null,
   mode: "editor",
+  role: "physician",
   view: "dense",
   selfName: "",
   proposals: [],
@@ -291,12 +300,13 @@ let started = false;
 function connectProvider(mode: DemoMode): void {
   provider?.destroy();
 
+  const role = useCollabStore.getState().role;
   const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
   provider = new WebsocketProvider(
     `${wsProtocol}//${location.host}/yorm/ws`,
     `${DOC_TYPE}/${DOC_ID}`,
     doc,
-    { params: { mode } },
+    { params: { mode, role } },
   );
 
   provider.awareness.setLocalState({
@@ -338,12 +348,14 @@ export function startCollab(): void {
 
   // The initial mode can come from the URL (`/?mode=proposer`), so a second
   // window can be opened straight into proposer mode; the initial view from
-  // `?view=esheet` (the dense editor is the default).
+  // `?view=esheet` (the dense editor is the default). The policy-lens role
+  // comes from `?role=` and is fixed for the page's lifetime.
   const params = new URLSearchParams(location.search);
   const initialMode: DemoMode = params.get("mode") === "proposer" ? "proposer" : "editor";
   setApiMode(initialMode);
   useCollabStore.setState({
     mode: initialMode,
+    role: parseDemoRole(params.get("role")),
     view: params.get("view") === "esheet" ? "esheet" : "dense",
     selfName: t("presence.userName", { n: doc.clientID % 1000 }),
   });
