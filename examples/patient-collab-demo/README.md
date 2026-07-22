@@ -189,8 +189,9 @@ the store's peers, proposals, and `useProposalActions`.
 The **Suggested changes** bar sits on top of the editor pane and accumulates
 every change intent of the session: open ones first (with per-item Accept /
 Reject for editors), then resolved ones greyed out with their status. It is
-collapsible (`<details>`, default open) with an open-count badge, and the list
-is height-capped so accumulation never reflows the page. Editors also get mass
+collapsible (`<details>`, starts collapsed with a chevron indicator) with an
+open-count badge, and the list is height-capped so accumulation never reflows
+the page. Editors also get mass
 actions — **Accept all** / **Reject all** — which resolve the open proposals
 sequentially; conflicted accepts stay listed with their inline conflict state.
 

@@ -25,7 +25,7 @@ test("proposer suggests, editor accepts: rows update only on accept", async ({ b
   const proposalId = await propose(proposer, t("form.family"), family);
 
   // Editor sees the suggestion in the review list and the tracking row…
-  const item = reviewPanel(editor).getByRole("listitem").filter({ hasText: family });
+  const item = (await reviewPanel(editor)).getByRole("listitem").filter({ hasText: family });
   await expect(item).toBeVisible();
   await expect(proposalRow(editor, proposalId)).toContainText("proposed");
   // …but neither the canonical document nor the contact rows changed.
@@ -51,7 +51,7 @@ test("proposer suggests, editor rejects: nothing changes but the status", async 
   const phone = `(07) 5550 ${runId}`;
 
   const proposalId = await propose(proposer, t("form.phone"), phone);
-  const item = reviewPanel(editor).getByRole("listitem").filter({ hasText: phone });
+  const item = (await reviewPanel(editor)).getByRole("listitem").filter({ hasText: phone });
   await expect(item).toBeVisible();
 
   await item

@@ -83,7 +83,7 @@ test("Accept all mass-applies every open suggestion", async ({ browser }) => {
   const phoneId = await propose(proposer, t("form.phone"), phone);
   const emailId = await propose(proposer, t("form.email"), email);
 
-  const panel = reviewPanel(editor);
+  const panel = await reviewPanel(editor);
   await expect(panel.getByRole("listitem").filter({ hasText: phone })).toBeVisible();
   await expect(panel.getByRole("listitem").filter({ hasText: email })).toBeVisible();
 
