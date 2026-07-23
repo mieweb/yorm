@@ -1,5 +1,7 @@
 # YORM
 
+<img width="1024" height="341" alt="yorm-banner" src="https://github.com/user-attachments/assets/02994dec-4a21-46d2-8f90-ce8c48760e11" />
+
 ## Yjs Object-Relational Mapper
 
 _Yet another Object-Relational Mapper._
@@ -9,6 +11,19 @@ _Yet another Object-Relational Mapper._
 > **Collaborate as a document. Query as a database.**
 >
 > **One canonical object. Any number of relational projections.**
+
+_For the SQL geeks:_
+```sql
+BEGIN;
+-- Collaborate on one canonical object using CRDT in a Yjs room.  
+-- When someone saves: 
+WITH document AS (
+  SELECT crdt_merge(current_state, incoming_update)
+)
+UPDATE tables
+FROM document;
+COMMIT;
+```
 
 **🧪 Live sandbox demo: [yorm.os.mieweb.org](https://yorm.os.mieweb.org/)** — a
 two-browser collaborative FHIR Patient editor with live SQL projections. Open it
