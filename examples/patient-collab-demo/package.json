@@ -14,7 +14,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.7",
+    "@hono/node-server": "^2.0.10",
     "@mieweb/ui": "^0.6.1",
     "@yorm/fhir": "workspace:*",
     "@yorm/yjs": "workspace:*",
