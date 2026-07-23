@@ -155,6 +155,24 @@ you're touching it:
 - When the stack or build flow changes, update `docs/ARCHITECTURE.md` (one place)
   rather than restating details elsewhere.
 
+## Deployment
+
+The `patient-collab-demo` server runs in production on port **3000**, fronted by an
+nginx reverse proxy at **yorm.os.mieweb.org**. It is managed by a systemd unit —
+see [deploy/README.md](../deploy/README.md) for the authoritative build/install/operate
+steps; do not duplicate them here.
+
+- **Unit**: [deploy/yorm.service](../deploy/yorm.service) is version-controlled and
+  copied to `/etc/systemd/system/yorm.service`. It runs `pnpm start`
+  (`tsx src/server.ts`) as user `horner` with `PORT=3000`, `Restart=on-failure`, and is
+  `enable`d to start on boot.
+- **The unit only runs the server** — it does not build. After pulling code, rebuild
+  (`pnpm build` + `pnpm --filter patient-collab-demo build`) then
+  `sudo systemctl restart yorm.service`.
+- **Logs / status**: `journalctl -u yorm.service -f`, `systemctl status yorm.service`.
+- nginx must forward to `http://localhost:3000` with WebSocket upgrade headers for the
+  `/yorm/ws/...` collaboration endpoint.
+
 ## Code Quality Principles
 
 <!-- https://github.com/mieweb/template-mieweb-opensource/blob/main/.github/copilot-instructions.md -->
