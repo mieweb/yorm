@@ -236,16 +236,16 @@ describe("@yorm/hono HTTP routes", () => {
 });
 
 describe("@yorm/hono proposal routes (PLAN.md M7)", () => {
-  /** role from `?role=`; proposers may only write the proposals subtree. */
-  const roleOptions: HonoYormOptions = {
+  /** mode from `?mode=`; proposers may only write the proposals subtree. */
+  const modeOptions: HonoYormOptions = {
     onAuthorizeWrite: (ctx, _docRef, scope) =>
-      (ctx.req.query("role") ?? "editor") === "proposer" ? scope === "proposals" : true,
+      (ctx.req.query("mode") ?? "editor") === "proposer" ? scope === "proposals" : true,
   };
 
-  const propose = (app: Hono, body: unknown, query = "?role=proposer") =>
+  const propose = (app: Hono, body: unknown, query = "?mode=proposer") =>
     app.request(`/yorm/docs/Patient/p1/proposals${query}`, json(body));
 
-  async function seeded(options: HonoYormOptions = roleOptions) {
+  async function seeded(options: HonoYormOptions = modeOptions) {
     const made = makeApp(options);
     await made.app.request("/yorm/docs/Patient/p1", json({ name: "Ada" }, "PUT"));
     return made;
@@ -272,12 +272,12 @@ describe("@yorm/hono proposal routes (PLAN.md M7)", () => {
 
     // Canonical writes from the proposer role are refused…
     expect(
-      (await app.request("/yorm/docs/Patient/p1?role=proposer", json({ name: "x" }, "PUT"))).status,
+      (await app.request("/yorm/docs/Patient/p1?mode=proposer", json({ name: "x" }, "PUT"))).status,
     ).toBe(403);
     expect(
       (
         await app.request(
-          "/yorm/docs/Patient/p1?role=proposer",
+          "/yorm/docs/Patient/p1?mode=proposer",
           json({ path: ["name"], value: "x" }, "PATCH"),
         )
       ).status,
@@ -285,7 +285,7 @@ describe("@yorm/hono proposal routes (PLAN.md M7)", () => {
     // …including accepting (accept writes canonical state).
     expect(
       (
-        await app.request(`/yorm/docs/Patient/p1/proposals/${proposal.id}/accept?role=proposer`, {
+        await app.request(`/yorm/docs/Patient/p1/proposals/${proposal.id}/accept?mode=proposer`, {
           method: "POST",
         })
       ).status,
@@ -369,7 +369,7 @@ describe("@yorm/hono proposal routes (PLAN.md M7)", () => {
     // Withdrawing a resolved proposal is a state conflict.
     expect(
       (
-        await app.request(`/yorm/docs/Patient/p1/proposals/${proposal.id}?role=proposer`, {
+        await app.request(`/yorm/docs/Patient/p1/proposals/${proposal.id}?mode=proposer`, {
           method: "DELETE",
         })
       ).status,
@@ -385,7 +385,7 @@ describe("@yorm/hono proposal routes (PLAN.md M7)", () => {
     ).json();
     expect(
       (
-        await app.request(`/yorm/docs/Patient/p1/proposals/${second.id}?role=proposer`, {
+        await app.request(`/yorm/docs/Patient/p1/proposals/${second.id}?mode=proposer`, {
           method: "DELETE",
         })
       ).status,
@@ -410,7 +410,7 @@ describe("@yorm/hono proposal routes (PLAN.md M7)", () => {
     // Proposers may not rewrite shared history.
     expect(
       (
-        await app.request("/yorm/docs/Patient/p1/proposals/clear-resolved?role=proposer", {
+        await app.request("/yorm/docs/Patient/p1/proposals/clear-resolved?mode=proposer", {
           method: "POST",
         })
       ).status,

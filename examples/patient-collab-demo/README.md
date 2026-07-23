@@ -1,5 +1,8 @@
 # patient-collab-demo
 
+**🧪 Live sandbox: [yorm.os.mieweb.org](https://yorm.os.mieweb.org/)** — try it
+without cloning; open the link in two windows to collaborate.
+
 A collaborative FHIR **Patient** editor (PLAN.md Milestones 6 + 7c): two browsers
 edit the same Patient live over Yjs, while a SQLite projection panel shows the
 relational `contact*` rows the YORM projection engine derives from the canonical
@@ -47,10 +50,10 @@ What it demonstrates:
   the view toggle, and the eSheet-native decorations + YAML form config
   ([tests/esheet.spec.ts](tests/esheet.spec.ts)).
 - **7c — Suggestion mode** ([src/client/components/ReviewPanel.tsx](src/client/components/ReviewPanel.tsx)):
-  an editor/proposer role switcher, inline suggestion adornments on the dense
+  an editor/proposer mode switcher, inline suggestion adornments on the dense
   editor, a top accumulating proposals bar with mass actions, and the
   `yorm_proposal` tracking table in the rows panel — see
-  [Roles & proposed changes](#roles--proposed-changes-m7c).
+  [Write modes & proposed changes](#write-modes--proposed-changes-m7c).
 
 ## One-command startup
 
@@ -81,8 +84,8 @@ graph LR
   subgraph BrowserB["Browser B (proposer)"]
     FormB["Patient editor (dense | eSheet)"] <--> StoreB["Zustand store"] <--> DocB["Y.Doc"]
   end
-  DocA <-->|"y-websocket /yorm/ws/Patient/p-demo?role=editor"| ServerDoc["Server Y.Doc (canonical + yorm:proposals)"]
-  DocB <-->|"y-websocket ?role=proposer (canonical writes refused)"| ServerDoc
+  DocA <-->|"y-websocket /yorm/ws/Patient/p-demo?mode=editor"| ServerDoc["Server Y.Doc (canonical + yorm:proposals)"]
+  DocB <-->|"y-websocket ?mode=proposer (canonical writes refused)"| ServerDoc
   StoreB -.->|"POST /proposals (change intent)"| Proposals["yorm:proposals subtree"]
   Proposals --- ServerDoc
   ReviewA -.->|"POST /proposals/:pid/accept | reject"| Proposals
@@ -105,7 +108,7 @@ graph LR
 
 The server ([src/server.ts](src/server.ts)) reuses the whole POC stack from
 [examples/fhir-patient-contacts](../fhir-patient-contacts/README.md)
-(`createPocServer` + `seedContacts`) and adds the demo roles
+(`createPocServer` + `seedContacts`) and adds the demo write modes
 (`onAuthorizeWrite`), the `yorm_proposal` tracking projection
 (`proposalTrackingMapping`), `GET /api/rows`, and static serving of the built
 client.
@@ -126,20 +129,45 @@ SQLite projection commits.
 The "unsaved projection changes" indicator polls
 `GET /yorm/docs/Patient/p-demo/projection-state`.
 
-## Roles & proposed changes (M7c)
+## Roles — the policy lens (role-security POC)
 
-The header's **Role** select switches between:
+The header's **Role** select names WHO is connecting (the **Mode** select
+names HOW a connection writes). Roles with a policy sync a **derived,
+redacted Y.Doc** served by the `@yorm/hono` policy lens — hidden fields never
+reach the browser, and every write is validated server-side before it merges
+back into the canonical document (see the
+[@yorm/yjs role policies](../../packages/yjs/README.md#role-policies--the-policy-lens-role-security-poc)):
 
-| Role     | Canonical writes | Proposals                      |
+| Role         | Sees                                      | May edit           |
+| ------------ | ----------------------------------------- | ------------------ |
+| Physician    | everything (no policy — canonical doc)    | everything         |
+| Nurse        | everything                                | telecom, addresses |
+| Receptionist | demographics only (no addresses/ids/exts) | names, telecom     |
+
+The policies live in [src/rolePolicies.ts](src/rolePolicies.ts), shared by
+the server (which passes them as `rolePolicies` to `createHonoYorm`) and the
+client (which renders protected sections read-only — cosmetic only, the lens
+enforces). The role travels as `?role=` on the WebSocket URL; switching roles
+reloads the page because a lens role syncs a different (derived) server
+document, so the client needs a fresh Y.Doc. Try it: open one window as
+physician and another at `/?role=receptionist` — the receptionist never
+receives the address, yet a name fix flows back to the physician live.
+[tests/roles.spec.ts](tests/roles.spec.ts) covers both directions.
+
+## Write modes & proposed changes (M7c)
+
+The header's **Mode** select switches between:
+
+| Mode     | Canonical writes | Proposals                      |
 | -------- | ---------------- | ------------------------------ |
 | Editor   | direct (Yjs)     | reviews: accept / reject       |
 | Proposer | refused          | creates via `POST …/proposals` |
 
-This is demo-level auth: the client claims its role via `?role=` on the
-WebSocket URL and an `X-Demo-Role` header on REST calls; the server's
+This is demo-level auth: the client claims its mode via `?mode=` on the
+WebSocket URL and an `X-Demo-Mode` header on REST calls; the server's
 `onAuthorizeWrite` hook lets proposers write only the `"proposals"` scope
 (canonical PUT/PATCH/accept/reject get 403). The `@yorm/hono` plugin
-additionally guards `?role=proposer` WebSocket connections server-side: a sync
+additionally guards `?mode=proposer` WebSocket connections server-side: a sync
 update that would change the canonical subtree is refused and the socket is
 closed with 1008 — proposer edits can never leak into the document.
 
@@ -164,8 +192,9 @@ the store's peers, proposals, and `useProposalActions`.
 The **Suggested changes** bar sits on top of the editor pane and accumulates
 every change intent of the session: open ones first (with per-item Accept /
 Reject for editors), then resolved ones greyed out with their status. It is
-collapsible (`<details>`, default open) with an open-count badge, and the list
-is height-capped so accumulation never reflows the page. Editors also get mass
+collapsible (`<details>`, starts collapsed with a chevron indicator) with an
+open-count badge, and the list is height-capped so accumulation never reflows
+the page. Editors also get mass
 actions — **Accept all** / **Reject all** — which resolve the open proposals
 sequentially; conflicted accepts stay listed with their inline conflict state.
 

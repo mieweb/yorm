@@ -3,7 +3,7 @@
  * generalization of `patientFields.ts` for the custom dense editor: every
  * element of the Patient object gets a spec with a unique i18n'd label, a
  * `read` from the materialized JSON, a `write` into the Y.Doc root, and the
- * proposal path / value conversion the proposer role needs. Array-backed
+ * proposal path / value conversion the proposer mode needs. Array-backed
  * sections (identifier, name, telecom, address) emit one spec group per
  * entry, so the whole object is editable — while `unmappedExtras` collects
  * everything the editor does NOT cover as read-only JSON chips ("keep the
@@ -45,6 +45,8 @@ export interface DenseFieldSpec extends FieldWriteSpec {
 export interface DenseSection {
   id: string;
   label: string;
+  /** Top-level Patient keys the section's fields write — role gating. */
+  topKeys: readonly string[];
   fields: DenseFieldSpec[];
 }
 
@@ -166,8 +168,18 @@ const SECTION_LABELS = {
   extensions: "editor.section.extensions",
 } as const satisfies Record<string, StringKey>;
 
+/** The top-level Patient keys each section's fields write. */
+const SECTION_KEYS: Record<keyof typeof SECTION_LABELS, readonly string[]> = {
+  identity: ["active", "gender", "birthDate", "photo"],
+  identifiers: ["identifier"],
+  names: ["name"],
+  telecom: ["telecom"],
+  addresses: ["address"],
+  extensions: ["extension"],
+};
+
 function section(id: keyof typeof SECTION_LABELS, fields: DenseFieldSpec[]): DenseSection {
-  return { id, label: t(SECTION_LABELS[id]), fields };
+  return { id, label: t(SECTION_LABELS[id]), topKeys: SECTION_KEYS[id], fields };
 }
 
 /**

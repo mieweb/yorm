@@ -41,6 +41,13 @@
   color: var(--mieweb-primary-700);
 }
 
+/* Policy-lens annotation: the role may see but not edit this section. */
+.editor-section-readonly {
+  font-weight: 400;
+  text-transform: none;
+  color: var(--mieweb-neutral-500, #6b7280);
+}
+
 .editor-section-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));

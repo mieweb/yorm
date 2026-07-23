@@ -8,10 +8,10 @@
  * from the y-websocket provider; the projection rows / pending flag and the
  * proposals list are polled from the demo server.
  *
- * Roles (M7c): in `proposer` mode `setField` never writes Y — it debounces
+ * Modes (M7c): in `proposer` mode `setField` never writes Y — it debounces
  * the value into `POST /proposals` (a semantic change intent on the
- * `yorm:proposals` subtree). Switching roles reconnects the WebSocket
- * provider with `?role=`, which the server's proposer guard enforces.
+ * `yorm:proposals` subtree). Switching modes reconnects the WebSocket
+ * provider with `?mode=`, which the server's proposer guard enforces.
  */
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
@@ -32,12 +32,14 @@ import {
   postPolicy,
   postProposal,
   rejectProposal,
-  setApiRole,
+  setApiMode,
 } from "./api";
-import type { AcceptResult, DemoRole, PolicyKind, RowsSnapshot } from "./api";
+import type { AcceptResult, DemoMode, PolicyKind, RowsSnapshot } from "./api";
 import { t } from "./i18n";
 import { getFieldSpec } from "./patientFields";
 import type { FieldWriteSpec, PatientFieldId } from "./patientFields";
+import { parseDemoRole } from "../rolePolicies";
+import type { DemoRole } from "../rolePolicies";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
@@ -60,7 +62,13 @@ export interface CollabState {
   policy: PolicyKind;
   pendingProjection: boolean;
   rows: RowsSnapshot | null;
-  /** Demo role (M7c): editors write Y directly, proposers only suggest. */
+  /** Demo mode (M7c): editors write Y directly, proposers only suggest. */
+  mode: DemoMode;
+  /**
+   * Policy-lens role (role-security POC): WHO is connecting. Fixed per page
+   * load (`?role=` param) — switching roles reloads with a fresh Y.Doc,
+   * because a lens role syncs a different (redacted) server document.
+   */
   role: DemoRole;
   /** Which Patient editor is shown (header toggle, `?view=` param). */
   view: ViewKind;
@@ -77,7 +85,7 @@ export interface CollabState {
   selectPolicy(kind: PolicyKind): void;
   save(): void;
   signalBlur(): void;
-  setRole(role: DemoRole): void;
+  setMode(mode: DemoMode): void;
   setView(view: ViewKind): void;
   /** Editor review action; a stale accept resolves to `{ conflict: true }`. */
   resolveProposal(id: string, action: "accept" | "accept-anyway" | "reject"): Promise<AcceptResult>;
@@ -99,7 +107,8 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   policy: "every-change",
   pendingProjection: false,
   rows: null,
-  role: "editor",
+  mode: "editor",
+  role: "physician",
   view: "dense",
   selfName: "",
   proposals: [],
@@ -113,7 +122,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   },
 
   setFieldBySpec(spec, value) {
-    if (get().role === "proposer") {
+    if (get().mode === "proposer") {
       queueProposal(spec, value);
       return;
     }
@@ -141,15 +150,15 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     }
   },
 
-  setRole(role) {
-    if (get().role === role) {
+  setMode(mode) {
+    if (get().mode === mode) {
       return;
     }
-    set({ role });
-    setApiRole(role);
-    // Reconnect so the server sees the new `?role=` (the proposer guard is
+    set({ mode });
+    setApiMode(mode);
+    // Reconnect so the server sees the new `?mode=` (the proposer guard is
     // enforced per WebSocket connection).
-    connectProvider(role);
+    connectProvider(mode);
   },
 
   setView(view) {
@@ -284,19 +293,24 @@ function readPeers(awareness: WebsocketProvider["awareness"]): Peer[] {
 let started = false;
 
 /**
- * (Re)connects the WebSocket provider with the given role. The Y.Doc and its
+ * (Re)connects the WebSocket provider with the given mode. The Y.Doc and its
  * listeners survive reconnects; awareness state and provider listeners are
  * re-established because each provider owns its awareness instance.
  */
-function connectProvider(role: DemoRole): void {
+function connectProvider(mode: DemoMode): void {
   provider?.destroy();
 
+  const role = useCollabStore.getState().role;
   const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
   provider = new WebsocketProvider(
     `${wsProtocol}//${location.host}/yorm/ws`,
     `${DOC_TYPE}/${DOC_ID}`,
     doc,
-    { params: { role } },
+    // BroadcastChannel would sync same-origin tabs directly, bypassing the
+    // server — a physician tab would pour the full canonical doc into a
+    // receptionist tab, which the policy lens then rightly refuses (an
+    // endless 1008 loop). Roles differ per tab, so tabs must not shortcut.
+    { params: { mode, role }, disableBc: true },
   );
 
   provider.awareness.setLocalState({
@@ -311,6 +325,17 @@ function connectProvider(role: DemoRole): void {
     useCollabStore.setState({
       status: event.status === "connected" ? "connected" : "disconnected",
     });
+  });
+
+  // Policy deny (1008): the policy lens refused one of this doc's updates
+  // and closed the socket. The refused change is baked into the local CRDT
+  // state, so y-websocket's auto-reconnect would re-send it and be refused
+  // again, forever. Discard the local doc and resync the server's view.
+  provider.on("connection-close", (event: { code?: number } | null) => {
+    if (event?.code === 1008) {
+      provider?.destroy();
+      location.reload();
+    }
   });
 
   provider.awareness.on("change", () => {
@@ -336,14 +361,16 @@ export function startCollab(): void {
   }
   started = true;
 
-  // The initial role can come from the URL (`/?role=proposer`), so a second
+  // The initial mode can come from the URL (`/?mode=proposer`), so a second
   // window can be opened straight into proposer mode; the initial view from
-  // `?view=esheet` (the dense editor is the default).
+  // `?view=esheet` (the dense editor is the default). The policy-lens role
+  // comes from `?role=` and is fixed for the page's lifetime.
   const params = new URLSearchParams(location.search);
-  const initialRole: DemoRole = params.get("role") === "proposer" ? "proposer" : "editor";
-  setApiRole(initialRole);
+  const initialMode: DemoMode = params.get("mode") === "proposer" ? "proposer" : "editor";
+  setApiMode(initialMode);
   useCollabStore.setState({
-    role: initialRole,
+    mode: initialMode,
+    role: parseDemoRole(params.get("role")),
     view: params.get("view") === "esheet" ? "esheet" : "dense",
     selfName: t("presence.userName", { n: doc.clientID % 1000 }),
   });
@@ -352,7 +379,7 @@ export function startCollab(): void {
     useCollabStore.setState({ patient: root.toJSON() as Patient });
   });
 
-  connectProvider(initialRole);
+  connectProvider(initialMode);
 
   const poll = async (): Promise<void> => {
     try {

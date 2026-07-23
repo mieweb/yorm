@@ -144,9 +144,59 @@ list (`readProposals(doc)`) instead of the codec output. Pending proposals
 appear in `yorm_proposal` rows while **never** appearing in canonical-mapping
 rows.
 
-Server-side role enforcement (proposer vs. editor) lives in
+Server-side write-mode enforcement (proposer vs. editor) lives in
 [@yorm/hono](../hono/README.md) (`onAuthorizeWrite` + the WebSocket
 canonical-write guard).
+
+## Role policies — the policy lens (role-security POC)
+
+Developer-defined per-role protections over a canonical document, analogous
+to how a `Mapping` projects a document into SQL rows: a `RolePolicy` projects
+it into what one **role** may see and change.
+
+```ts
+import { defineRolePolicy, createPolicyLens } from "@yorm/yjs";
+
+const receptionist = defineRolePolicy<Visit>({
+  role: "receptionist",
+  documentType: "Visit",
+  // Outbound redaction: what this role sees (deterministic, plain object).
+  view: (visit) => ({ demographics: visit.demographics ?? {} }),
+  // Inbound guard over the *view's* before/after. Absent ⇒ read-only lens.
+  canWrite: ({ before, after }) =>
+    [...Object.keys(before), ...Object.keys(after)].every((k) => k === "demographics"),
+  // Optional: translate an allowed view change back onto the canonical
+  // object. Default: top-level key merge (removed view keys are deleted).
+  mergeWrite: (canonical, { after }) => ({ ...canonical, ...after }),
+});
+
+const lens = createPolicyLens(session, receptionist, {
+  role: "receptionist",
+  documentType: "Visit",
+  documentId: "v1",
+});
+lens.doc; // derived Y.Doc holding only the view — what clients sync
+lens.applyClientUpdate(update); // { allowed } | { allowed: false, reason }
+```
+
+Why a derived doc instead of filtering updates: CRDT updates reference each
+other by clock position, so a redacted view **cannot** share CRDT identity
+with the canonical doc — hiding data requires a separate doc per (document,
+role). The lens keeps that doc in sync with `view(canonical)` (loop-safe:
+only rebuilt when the visible JSON changes), validates every client update
+on a scratch doc (denied updates never touch anything), and writes allowed
+changes back through the normal `session.write` path so projections,
+persistence, and other lenses all observe them.
+
+Semantics — secure by default: a role **with** a policy sees only `view` and
+writes only what `canWrite` allows; roles **without** a policy are untouched
+by the lens layer. v1 tradeoffs (same family as the canonical-write guard):
+per-update encode + double-apply for validation; JSON-level write-back, so
+concurrent edits to the same visible section resolve last-writer-wins at the
+section level; denied updates are refused as a whole.
+
+Transport wiring (`?role=` → lens rooms) lives in
+[@yorm/hono](../hono/README.md#role-policies-policy-lens-role-security-poc).
 
 ## Replay & failed-projection retry (PLAN.md M8)
 

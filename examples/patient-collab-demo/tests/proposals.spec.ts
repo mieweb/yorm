@@ -1,6 +1,6 @@
 /**
  * PLAN.md 7c — suggestion mode end to end: browser A is an editor, browser B
- * a proposer (`/?role=proposer`). B's edits become proposals (no canonical /
+ * a proposer (`/?mode=proposer`). B's edits become proposals (no canonical /
  * row change); A reviews them in the top proposals bar — accept applies the
  * change everywhere, reject changes nothing but the `yorm_proposal` status.
  */
@@ -19,13 +19,13 @@ import {
 
 test("proposer suggests, editor accepts: rows update only on accept", async ({ browser }) => {
   const editor = await openEditor(browser);
-  const proposer = await openEditor(browser, "/?role=proposer");
+  const proposer = await openEditor(browser, "/?mode=proposer");
   const family = `Suggested-${runId}`;
 
   const proposalId = await propose(proposer, t("form.family"), family);
 
   // Editor sees the suggestion in the review list and the tracking row…
-  const item = reviewPanel(editor).getByRole("listitem").filter({ hasText: family });
+  const item = (await reviewPanel(editor)).getByRole("listitem").filter({ hasText: family });
   await expect(item).toBeVisible();
   await expect(proposalRow(editor, proposalId)).toContainText("proposed");
   // …but neither the canonical document nor the contact rows changed.
@@ -46,12 +46,12 @@ test("proposer suggests, editor accepts: rows update only on accept", async ({ b
 
 test("proposer suggests, editor rejects: nothing changes but the status", async ({ browser }) => {
   const editor = await openEditor(browser);
-  const proposer = await openEditor(browser, "/?role=proposer");
+  const proposer = await openEditor(browser, "/?mode=proposer");
   const phoneBefore = await fieldInput(editor, t("form.phone")).inputValue();
   const phone = `(07) 5550 ${runId}`;
 
   const proposalId = await propose(proposer, t("form.phone"), phone);
-  const item = reviewPanel(editor).getByRole("listitem").filter({ hasText: phone });
+  const item = (await reviewPanel(editor)).getByRole("listitem").filter({ hasText: phone });
   await expect(item).toBeVisible();
 
   await item
