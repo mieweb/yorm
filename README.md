@@ -10,6 +10,10 @@ _Yet another Object-Relational Mapper._
 >
 > **One canonical object. Any number of relational projections.**
 
+**🧪 Live sandbox demo: [yorm.os.mieweb.org](https://yorm.os.mieweb.org/)** — a
+two-browser collaborative FHIR Patient editor with live SQL projections. Open it
+in two windows to edit the same Patient in real time.
+
 YORM is an object-preserving, CRDT-aware mapping layer for turning serialized domain objects into versioned, replayable relational models.
 
 Applications work with real objects backed by Yjs. Database teams work with ordinary tables, keys, indexes, constraints, and SQL. YORM keeps both representations useful without pretending they are the same thing.

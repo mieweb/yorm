@@ -1,5 +1,8 @@
 # patient-collab-demo
 
+**🧪 Live sandbox: [yorm.os.mieweb.org](https://yorm.os.mieweb.org/)** — try it
+without cloning; open the link in two windows to collaborate.
+
 A collaborative FHIR **Patient** editor (PLAN.md Milestones 6 + 7c): two browsers
 edit the same Patient live over Yjs, while a SQLite projection panel shows the
 relational `contact*` rows the YORM projection engine derives from the canonical

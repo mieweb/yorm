@@ -114,22 +114,46 @@
 
 ## Project Overview
 
-Finicky is a native macOS default-browser router. **The single source of truth for the
-technical stack, repository layout, and build pipeline is [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)** —
+YORM is a Yjs-backed object-relational mapper (pnpm monorepo: `@yorm/*` packages
+plus runnable `examples/`). **The single source of truth for the technical stack,
+repository layout, and build pipeline is [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)** —
 read it first and do not duplicate that information here.
 
-Project-specific conventions (the rest of this file is generic guidance):
+### ⚠️ Production environment — this machine hosts the public sandbox
 
-- **Build/test through `scripts/`**, never ad-hoc commands: `./scripts/install.sh`,
-  `./scripts/build.sh`, `./scripts/test.sh`, `./scripts/dev.sh`. Keep these scripts as the
-  one place build logic lives.
-- **Use `npm`** for the TypeScript packages (`config-api`, `finicky-ui`) — the committed
-  `package-lock.json` is authoritative, despite a stray `packageManager: pnpm` field.
-- **Go + cgo/Objective-C**: the macOS app lives in `apps/finicky/src`. Native glue comes in
-  matched `.go`/`.h`/`.m` sets — change them together.
-- **User config runs in Goja**, not Node. Don't assume Node/browser globals are available.
-- When the stack or build flow changes, update `docs/ARCHITECTURE.md` (one place) rather
-  than restating details elsewhere.
+**This workspace machine is the live host behind <https://yorm.os.mieweb.org/>.**
+A reverse proxy forwards that public domain to the `patient-collab-demo` server
+running locally on **port 3000**. Treat this box as production and know when
+you're touching it:
+
+- **Port 3000 is PROD.** The process serving `:3000`
+  (`PORT=3000 tsx src/server.ts`, started via
+  `pnpm --filter patient-collab-demo start`) is the public site. Do **not** kill,
+  restart, or block it without asking the user first — that takes the sandbox
+  down.
+- **`dist/` is shared, so building == deploying.** Every demo instance serves the
+  same `examples/patient-collab-demo/dist/` from disk, so
+  `pnpm --filter patient-collab-demo build` overwrites those files and the :3000
+  process serves them on the next request. There is no separate deploy step —
+  treat a rebuild as a production deploy.
+- **Check what's live before acting:** `ss -ltnp | grep -E ':3000|:5178'`. Port
+  **3000 = public prod**; any other port is a private local instance.
+- **To experiment without touching prod**, use the Vite dev server
+  (`pnpm --filter patient-collab-demo dev`) which serves from memory and does not
+  write `dist/`. Never run `build`/`start` against :3000 just to "test".
+- **Announce prod impact.** When a requested action would rebuild `dist/`,
+  restart the :3000 server, or otherwise change what the public URL serves, say
+  so explicitly and confirm before proceeding.
+
+### Conventions
+
+- **Use `pnpm`** (workspace, `pnpm-workspace.yaml`); the committed
+  `pnpm-lock.yaml` is authoritative.
+- The `patient-collab-demo` consumes `@esheet/*` built from the
+  `vendor/eSheet` submodule — run `pnpm --filter patient-collab-demo esheet:build`
+  before builds that need it.
+- When the stack or build flow changes, update `docs/ARCHITECTURE.md` (one place)
+  rather than restating details elsewhere.
 
 ## Code Quality Principles
 
