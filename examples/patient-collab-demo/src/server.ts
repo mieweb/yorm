@@ -5,12 +5,15 @@
  * WebSockets), plus:
  *
  * - one seeded Patient `p-demo` (from the contacts fixture),
- * - demo-level roles (M7c): the role travels as `?role=proposer|editor` on
- *   WebSocket upgrades and as an `X-Demo-Role` header (or `role` query) on
+ * - demo-level write modes (M7c): the mode travels as `?mode=proposer|editor`
+ *   on WebSocket upgrades and as an `X-Demo-Mode` header (or `mode` query) on
  *   REST calls; `onAuthorizeWrite` lets proposers write only the proposals
  *   subtree — direct canonical writes (PUT/PATCH/accept/reject) get 403,
- *   and the plugin's `?role=proposer` WebSocket guard closes any socket
+ *   and the plugin's `?mode=proposer` WebSocket guard closes any socket
  *   that tries a canonical edit (1008),
+ * - policy-lens roles (role-security POC): `?role=receptionist|nurse` on a
+ *   WebSocket upgrade syncs a per-role redacted view with server-enforced
+ *   write rules ([src/rolePolicies.ts](./rolePolicies.ts)),
  * - the `yorm_proposal` tracking projection (`proposalTrackingMapping`) so
  *   open/resolved proposals are visible as SQL rows,
  * - `GET /api/rows` — the live contact-table + `yorm_proposal` rows for the
@@ -32,16 +35,18 @@ import {
 import { CONTACT_TABLES } from "example-fhir-patient-contacts/schema";
 import { proposalTrackingMapping } from "@yorm/yjs";
 
+import { demoRolePolicies } from "./rolePolicies.js";
+
 const PATIENT_ID = "p-demo";
 const port = Number(process.env.PORT ?? 5178);
 
 /**
- * Demo-level authentication: the role is whatever the client claims via the
- * `X-Demo-Role` header or `role` query param (a real deployment would derive
+ * Demo-level authentication: the mode is whatever the client claims via the
+ * `X-Demo-Mode` header or `mode` query param (a real deployment would derive
  * it from a verified identity).
  */
-function demoRole(c: Context): string {
-  return c.req.header("x-demo-role") ?? c.req.query("role") ?? "editor";
+function demoMode(c: Context): string {
+  return c.req.header("x-demo-mode") ?? c.req.query("mode") ?? "editor";
 }
 
 const poc = createPocServer({
@@ -49,7 +54,12 @@ const poc = createPocServer({
   honoOptions: {
     // Proposers may write the proposals subtree but never canonical state;
     // editors may write both.
-    onAuthorizeWrite: (c, _docRef, scope) => scope === "proposals" || demoRole(c) !== "proposer",
+    onAuthorizeWrite: (c, _docRef, scope) => scope === "proposals" || demoMode(c) !== "proposer",
+    // Policy-lens roles (role-security POC): `?role=receptionist|nurse` on a
+    // WebSocket upgrade syncs a derived, redacted Y.Doc instead of the
+    // canonical one — see src/rolePolicies.ts. No `?role=` (or physician)
+    // means full canonical access.
+    rolePolicies: demoRolePolicies,
   },
 });
 

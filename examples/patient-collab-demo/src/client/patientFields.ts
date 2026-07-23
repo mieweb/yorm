@@ -17,8 +17,8 @@ export type PatientFieldId = "given" | "family" | "birthDate" | "phone" | "email
 
 /**
  * The write side of a field spec — everything the store needs to turn a
- * string input value into a Y.Doc write (editor role) or a change intent
- * (proposer role). Shared by the eSheet specs below and the dense editor's
+ * string input value into a Y.Doc write (editor mode) or a change intent
+ * (proposer mode). Shared by the eSheet specs below and the dense editor's
  * generated specs (`patientEditorFields.ts`).
  */
 export interface FieldWriteSpec {
@@ -29,7 +29,7 @@ export interface FieldWriteSpec {
   /**
    * Path into the canonical Patient for a `set` proposal (M7c), or `null`
    * when the structure the path addresses does not exist yet (the demo only
-   * proposes over existing elements; creating them needs the editor role).
+   * proposes over existing elements; creating them needs the editor mode).
    */
   proposalPath(patient: Patient): (string | number)[] | null;
   /** Converts the form input string into the proposed JSON value. */

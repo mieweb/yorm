@@ -3,7 +3,7 @@
  * the `p-demo` Patient (policy / flush / signal / projection-state /
  * proposals) and the demo server's `/api/rows` projection snapshot.
  *
- * Every request carries the demo role in an `X-Demo-Role` header (M7c) —
+ * Every request carries the demo mode in an `X-Demo-Mode` header (M7c) —
  * the server's `onAuthorizeWrite` refuses canonical writes from proposers.
  */
 import type { ChangeIntent, ProposalOp } from "@yorm/yjs";
@@ -20,17 +20,17 @@ const DOC_PATH = `/yorm/docs/${DOC_TYPE}/${DOC_ID}`;
 
 export type PolicyKind = "every-change" | "on-blur" | "idle" | "explicit";
 
-export type DemoRole = "editor" | "proposer";
+export type DemoMode = "editor" | "proposer";
 
-let currentRole: DemoRole = "editor";
+let currentMode: DemoMode = "editor";
 
-/** Sets the role sent with every subsequent request. */
-export function setApiRole(role: DemoRole): void {
-  currentRole = role;
+/** Sets the mode sent with every subsequent request. */
+export function setApiMode(mode: DemoMode): void {
+  currentMode = mode;
 }
 
-function roleHeaders(): Record<string, string> {
-  return { "x-demo-role": currentRole };
+function modeHeaders(): Record<string, string> {
+  return { "x-demo-mode": currentMode };
 }
 
 /** One `yorm_proposal` tracking-projection row (PLAN.md 7b). */
@@ -57,7 +57,7 @@ export interface RowsSnapshot {
 async function postJson(path: string, body: unknown): Promise<Response> {
   const response = await fetch(path, {
     method: "POST",
-    headers: { "content-type": "application/json", ...roleHeaders() },
+    headers: { "content-type": "application/json", ...modeHeaders() },
     body: JSON.stringify(body),
   });
   if (!response.ok) {
@@ -101,7 +101,7 @@ export interface ProposeInput {
 }
 
 export async function fetchProposals(): Promise<ChangeIntent[]> {
-  const response = await fetch(`${DOC_PATH}/proposals`, { headers: roleHeaders() });
+  const response = await fetch(`${DOC_PATH}/proposals`, { headers: modeHeaders() });
   const body = (await response.json()) as { proposals: ChangeIntent[] };
   return body.proposals;
 }
@@ -117,7 +117,7 @@ export type AcceptResult = { conflict: false } | { conflict: true; currentValue:
 export async function acceptProposal(id: string, resolvedBy: string): Promise<AcceptResult> {
   const response = await fetch(`${DOC_PATH}/proposals/${id}/accept`, {
     method: "POST",
-    headers: { "content-type": "application/json", ...roleHeaders() },
+    headers: { "content-type": "application/json", ...modeHeaders() },
     body: JSON.stringify({ resolvedBy }),
   });
   if (response.status === 409) {

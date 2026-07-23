@@ -20,6 +20,21 @@
   outline-offset: 2px;
 }
 
+/* Collapsed/expanded indicator — the flex summary hides the native marker. */
+.review-chevron {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--mieweb-primary-700);
+  border-bottom: 2px solid var(--mieweb-primary-700);
+  transform: rotate(-45deg); /* › collapsed */
+  transition: transform 120ms ease;
+}
+
+.review-chevron[data-expanded="true"] {
+  transform: rotate(45deg); /* ⌄ expanded */
+}
+
 .review-title {
   display: inline;
   margin: 0;

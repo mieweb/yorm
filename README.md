@@ -10,6 +10,10 @@ _Yet another Object-Relational Mapper._
 >
 > **One canonical object. Any number of relational projections.**
 
+**🧪 Live sandbox demo: [yorm.os.mieweb.org](https://yorm.os.mieweb.org/)** — a
+two-browser collaborative FHIR Patient editor with live SQL projections. Open it
+in two windows to edit the same Patient in real time.
+
 YORM is an object-preserving, CRDT-aware mapping layer for turning serialized domain objects into versioned, replayable relational models.
 
 Applications work with real objects backed by Yjs. Database teams work with ordinary tables, keys, indexes, constraints, and SQL. YORM keeps both representations useful without pretending they are the same thing.
@@ -776,8 +780,10 @@ YORM treats each Yjs `Y.Doc` as an **authorization boundary**. Any client permit
 
 This has two concrete consequences for YORM deployments:
 
-- **Suggestion mode is write authorization, not confidentiality.** The proposals subtree lives in the same `Y.Doc` as the canonical resource, so a proposer — or any synchronized reader — sees the full canonical state and every other participant's pending proposals. The server-side role hook (and the WebSocket guard that refuses proposers' canonical edits) controls who may _change_ what; it cannot hide anything.
+- **Suggestion mode is write authorization, not confidentiality.** The proposals subtree lives in the same `Y.Doc` as the canonical resource, so a proposer — or any synchronized reader — sees the full canonical state and every other participant's pending proposals. The server-side write-mode hook (and the WebSocket guard that refuses proposers' canonical edits) controls who may _change_ what; it cannot hide anything.
 - **Content with different audiences belongs in different documents.** Store separately authorized material — shared, staff-only, counsel-only, participant-specific — in separate, independently authorized documents or subdocuments, each with its own projections.[^yjs-subdocuments] A document is YORM's consistency boundary _and_ its confidentiality boundary.
+
+When per-role redaction of one logical document is needed, YORM's **role policies** (policy lens, POC) apply the "different documents" rule automatically: a developer-defined `RolePolicy` (`view`/`canWrite`/`mergeWrite`) gives each role a server-held _derived_ `Y.Doc` holding only its view, with every write validated before it reaches canonical state. See [@yorm/yjs](packages/yjs/README.md#role-policies--the-policy-lens-role-security-poc) for the lens and [@yorm/hono](packages/hono/README.md#role-policies-policy-lens-role-security-poc) for the transport wiring.
 
 Authentication and authorization are the collaboration server's job, enforced on every document connection: verify read access before sending any state or updates, and reject incoming updates unless the participant has write permission for the targeted subtree. In `@yorm/hono` these are the `onAuthorize` (connection/read) and `onAuthorizeWrite` (canonical vs. proposals scope) hooks. Room identifiers, client-side logic, and UI visibility rules are not security boundaries. Yjs documents `y-websocket` as the natural centralized point for authentication and authorization, and its threat model assigns authentication, transport security, and server-side read/write access control to the application.[^yjs-websocket][^yjs-threat-model]
 

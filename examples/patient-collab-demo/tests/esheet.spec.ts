@@ -28,7 +28,7 @@ import {
 
 test("eSheet adornment: inline accept applies the suggestion", async ({ browser }) => {
   const editor = await openEsheetEditor(browser);
-  const proposer = await openEditor(browser, "/?role=proposer");
+  const proposer = await openEditor(browser, "/?mode=proposer");
   const family = `Esheet-${runId}`;
 
   const proposalId = await propose(proposer, t("form.family"), family);
@@ -52,7 +52,7 @@ test("presence: a peer's focused field shows a presence dot in the eSheet view",
   browser,
 }) => {
   const editor = await openEsheetEditor(browser);
-  const proposer = await openEditor(browser, "/?role=proposer");
+  const proposer = await openEditor(browser, "/?mode=proposer");
 
   // The proposer's own presence name (the reused e2e server can hold stale
   // awareness from earlier runs, so assertions must target this peer's dot).

@@ -48,9 +48,14 @@ export function projectionPanel(page: Page): Locator {
   return page.getByRole("region", { name: t("rows.title") });
 }
 
-/** The top accumulating proposals bar. */
-export function reviewPanel(page: Page): Locator {
-  return page.getByRole("region", { name: t("review.title") });
+/** The top accumulating proposals bar, expanded (it starts collapsed). */
+export async function reviewPanel(page: Page): Promise<Locator> {
+  const panel = page.getByRole("region", { name: t("review.title") });
+  const summary = panel.locator("summary");
+  if (!(await panel.locator("details[open]").count())) {
+    await summary.click();
+  }
+  return panel;
 }
 
 /** The `yorm_proposal` tracking row for one proposal id in the rows panel. */

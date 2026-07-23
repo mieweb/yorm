@@ -1,12 +1,15 @@
-/* Header view toggle — dense custom editor vs. eSheet form. */
+/* Header view toggle — dense custom editor vs. eSheet form. Mirrors the
+   stacked label + control layout of the @mieweb/ui Select used by the role
+   and mode switchers so the header controls stay visually consistent. */
 
 .view-toggle {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  flex-direction: column;
+  gap: 0.375rem;
 }
 
 .view-toggle-label {
-  font-size: 0.8rem;
-  color: var(--mieweb-muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--mieweb-foreground);
 }

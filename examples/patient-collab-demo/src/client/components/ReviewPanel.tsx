@@ -2,10 +2,11 @@
  * Top accumulating proposals bar (M7c, reworked): every change intent of the
  * session — open ones first (with per-item Accept / Reject for editors and
  * the 409 "changed since proposed" conflict flow), then resolved ones greyed
- * out with their status. Collapsible via <details> (default open) with an
- * open-count badge; the list is height-capped so accumulation never reflows
- * the page. Editors also get sequential mass actions: Accept all / Reject
- * all (conflicted accepts stay listed with their inline conflict state).
+ * out with their status. Collapsible via <details> (default collapsed, with
+ * a chevron state indicator) and an open-count badge; the list is
+ * height-capped so accumulation never reflows the page. Editors also get
+ * sequential mass actions: Accept all / Reject all (conflicted accepts stay
+ * listed with their inline conflict state).
  */
 import { useState } from "react";
 import { Badge, Button } from "@mieweb/ui";
@@ -28,17 +29,19 @@ function fieldLabelFor(patient: Patient | null, proposal: ChangeIntent): string 
 }
 
 export function ReviewPanel(): React.JSX.Element {
-  const role = useCollabStore((state) => state.role);
+  const mode = useCollabStore((state) => state.mode);
   const patient = useCollabStore((state) => state.patient);
   const proposals = useCollabStore((state) => state.proposals);
   const actions = useProposalActions();
-  const [expanded, setExpanded] = useState(true);
+  // Collapsed by default — the open-count badge and the chevron on the
+  // summary signal what's inside without stealing vertical space.
+  const [expanded, setExpanded] = useState(false);
   // Resolved history is hidden by default: the badge counts OPEN suggestions,
   // and showing dozens of resolved intents under a "0 open" badge reads as a
   // contradiction. The toggle keeps the full audit trail one click away.
   const [showResolved, setShowResolved] = useState(false);
 
-  const isEditor = role === "editor";
+  const isEditor = mode === "editor";
   const open = proposals.filter((proposal) => proposal.status === "proposed");
   // Open first (oldest → newest), then resolved (newest resolution first).
   const resolved = proposals.filter((proposal) => proposal.status !== "proposed").reverse();
@@ -48,6 +51,7 @@ export function ReviewPanel(): React.JSX.Element {
     <section className="review-panel" aria-label={t("review.title")}>
       <details open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
         <summary className="review-summary">
+          <span className="review-chevron" aria-hidden="true" data-expanded={expanded} />
           <h2 className="review-title">{t("review.title")}</h2>
           <Badge variant={open.length > 0 ? "warning" : "success"}>
             {t("review.openCount", { count: open.length })}

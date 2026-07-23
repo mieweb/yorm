@@ -16,6 +16,7 @@ import { PolicyBar } from "./PolicyBar";
 import { PresenceBar } from "./PresenceBar";
 import { ProjectionPanel } from "./ProjectionPanel";
 import { ReviewPanel } from "./ReviewPanel";
+import { ModeSwitcher } from "./ModeSwitcher";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { ViewToggle } from "./ViewToggle";
 import "./app-shell.scss";
@@ -32,6 +33,8 @@ const STATUS_LABEL: Record<ConnectionStatus, string> = {
   disconnected: t("connection.disconnected"),
 };
 
+const REPO_URL = "https://github.com/mieweb/yorm";
+
 export function App(): React.JSX.Element {
   const status = useCollabStore((state) => state.status);
   const view = useCollabStore((state) => state.view);
@@ -43,11 +46,20 @@ export function App(): React.JSX.Element {
         <div className="app-heading">
           <h1 className="app-title">{t("app.title")}</h1>
           <p className="app-subtitle">{t("app.subtitle")}</p>
+          <a
+            className="app-repo-link"
+            href={REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t("app.repo")}
+          </a>
         </div>
         <div className="app-status">
           <PresenceBar />
           <ViewToggle />
           <RoleSwitcher />
+          <ModeSwitcher />
           <Badge variant={STATUS_VARIANT[status]} aria-label={t("connection.label")}>
             {STATUS_LABEL[status]}
           </Badge>

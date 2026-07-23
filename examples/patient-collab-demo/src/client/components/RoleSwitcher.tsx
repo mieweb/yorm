@@ -1,23 +1,25 @@
 /**
- * Role switcher (PLAN.md 7c): editor writes the canonical document directly;
- * proposer edits become change intents on the proposals subtree. Switching
- * reconnects the WebSocket with `?role=` so the server enforces the role.
+ * Policy-lens role switcher (role-security POC): physician (full canonical
+ * access), nurse and receptionist (server-side redacted view + write rules,
+ * see src/rolePolicies.ts). Switching navigates to `?role=` — a lens role
+ * syncs a *different* server document (the derived, redacted Y.Doc), so the
+ * page reloads with a fresh client doc instead of reconnecting in place.
  */
 import { Select } from "@mieweb/ui";
 
-import type { DemoRole } from "../api";
+import { DEMO_ROLES } from "../../rolePolicies";
+import type { DemoRole } from "../../rolePolicies";
 import { t } from "../i18n";
 import { useCollabStore } from "../store";
 import "./role-switcher.scss";
 
-const ROLE_OPTIONS: Array<{ value: DemoRole; label: string }> = [
-  { value: "editor", label: t("role.editor") },
-  { value: "proposer", label: t("role.proposer") },
-];
+const ROLE_OPTIONS: Array<{ value: DemoRole; label: string }> = DEMO_ROLES.map((role) => ({
+  value: role,
+  label: t(`role.${role}`),
+}));
 
 export function RoleSwitcher(): React.JSX.Element {
   const role = useCollabStore((state) => state.role);
-  const setRole = useCollabStore((state) => state.setRole);
 
   return (
     <div className="role-switcher">
@@ -26,7 +28,11 @@ export function RoleSwitcher(): React.JSX.Element {
         label={t("role.label")}
         options={ROLE_OPTIONS}
         value={role}
-        onValueChange={(value) => setRole(value as DemoRole)}
+        onValueChange={(value) => {
+          const url = new URL(location.href);
+          url.searchParams.set("role", value);
+          location.assign(url);
+        }}
         size="sm"
       />
     </div>
