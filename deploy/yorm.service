@@ -1,0 +1,24 @@
+[Unit]
+Description=YORM patient-collab-demo (served on :3000, fronted by nginx at yorm.os.mieweb.org)
+Documentation=https://github.com/mieweb/yorm
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=horner
+WorkingDirectory=/home/horner/yorm/examples/patient-collab-demo
+# HOME is required so corepack/pnpm can find its cached package manager.
+Environment=HOME=/home/horner
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# `pnpm start` runs `tsx src/server.ts`, which serves the built dist/ client
+# and the /yorm + /api endpoints on $PORT.
+ExecStart=/usr/bin/pnpm start
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target
