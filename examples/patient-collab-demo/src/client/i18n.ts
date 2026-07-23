@@ -6,6 +6,7 @@
 const en = {
   "app.title": "YORM Patient Collab Demo",
   "app.subtitle": "Two browsers, one FHIR Patient — the SQL rows are projections",
+  "app.repo": "View on GitHub",
   "connection.label": "Connection",
   "connection.connecting": "Connecting…",
   "connection.connected": "Connected",

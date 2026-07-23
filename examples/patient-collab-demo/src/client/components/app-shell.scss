@@ -41,6 +41,20 @@ body {
   color: var(--mieweb-muted-foreground);
 }
 
+.app-repo-link {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--mieweb-primary-700);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
 .app-status {
   display: flex;
   flex-wrap: wrap;
