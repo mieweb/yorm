@@ -79,3 +79,26 @@
   font-family: var(--mieweb-font-mono);
   font-size: 0.75rem;
 }
+
+@keyframes flash-update {
+  from {
+    background: var(--mieweb-primary-600);
+    color: var(--mieweb-card);
+  }
+
+  to {
+    background: transparent;
+    color: inherit;
+  }
+}
+
+.projection-table [data-changed] {
+  animation: flash-update 1.4s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projection-table [data-changed] {
+    animation: none;
+    outline: 2px solid var(--mieweb-primary-600);
+  }
+}

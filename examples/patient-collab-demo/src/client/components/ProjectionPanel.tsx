@@ -5,6 +5,10 @@
  * commits. Pending proposals appear here as `yorm_proposal` rows while the
  * contact rows stay untouched until acceptance. Column and table names are
  * database identifiers, shown verbatim (they are not translatable UI copy).
+ *
+ * A commit is easy to miss in a wall of rows, so each new snapshot is diffed
+ * against the previous one: a toast pops in the corner and the cells that
+ * actually changed flash.
  */
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@mieweb/ui";
 import { CONTACT_TABLES } from "example-fhir-patient-contacts/schema";
@@ -20,6 +24,8 @@ const ROWS_TABLES = [...CONTACT_TABLES, "yorm_proposal"] as const;
 type RowsTableName = (typeof ROWS_TABLES)[number];
 
 const TOAST_MS = 3000;
+/** Must outlast the `flash-update` keyframes in the stylesheet. */
+const FLASH_MS = 1500;
 
 const TABLE_COLUMNS: Record<RowsTableName, readonly string[]> = {
   contact: [
@@ -46,7 +52,44 @@ const TABLE_COLUMNS: Record<RowsTableName, readonly string[]> = {
   yorm_proposal: ["proposal_id", "path", "op", "status", "actor"],
 };
 
-function RowsTable({ table, rows }: { table: RowsTableName; rows: RowsSnapshot[RowsTableName] }) {
+function cellValue(row: unknown, column: string): string {
+  return (row as Record<string, string | null>)[column] ?? "";
+}
+
+function cellKey(table: RowsTableName, index: number, column: string): string {
+  return `${table}:${index}:${column}`;
+}
+
+/**
+ * Cells whose rendered value differs between two snapshots. Rows are matched
+ * positionally — good enough to draw the eye, since the projection engine
+ * rewrites these small tables in a stable order.
+ */
+function diffCells(previous: RowsSnapshot, next: RowsSnapshot): Set<string> {
+  const changed = new Set<string>();
+  for (const table of ROWS_TABLES) {
+    const previousRows: unknown[] = previous[table];
+    next[table].forEach((row, index) => {
+      const before = previousRows[index];
+      for (const column of TABLE_COLUMNS[table]) {
+        if (before === undefined || cellValue(before, column) !== cellValue(row, column)) {
+          changed.add(cellKey(table, index, column));
+        }
+      }
+    });
+  }
+  return changed;
+}
+
+function RowsTable({
+  table,
+  rows,
+  changedCells,
+}: {
+  table: RowsTableName;
+  rows: RowsSnapshot[RowsTableName];
+  changedCells: ReadonlySet<string>;
+}) {
   const columns = TABLE_COLUMNS[table];
   return (
     <div className="projection-table">
@@ -70,8 +113,11 @@ function RowsTable({ table, rows }: { table: RowsTableName; rows: RowsSnapshot[R
             {rows.map((row, index) => (
               <TableRow key={index}>
                 {columns.map((column) => (
-                  <TableCell key={column}>
-                    {(row as unknown as Record<string, string | null>)[column] ?? ""}
+                  <TableCell
+                    key={column}
+                    data-changed={changedCells.has(cellKey(table, index, column)) || undefined}
+                  >
+                    {cellValue(row, column)}
                   </TableCell>
                 ))}
               </TableRow>
@@ -87,6 +133,7 @@ export function ProjectionPanel(): React.JSX.Element {
   const rows = useCollabStore((state) => state.rows);
   const previousRows = useRef<RowsSnapshot | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
+  const [changedCells, setChangedCells] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
     if (!rows) {
@@ -99,8 +146,13 @@ export function ProjectionPanel(): React.JSX.Element {
       return;
     }
     setToastVisible(true);
-    const timer = setTimeout(() => setToastVisible(false), TOAST_MS);
-    return () => clearTimeout(timer);
+    setChangedCells(diffCells(previous, rows));
+    const toastTimer = setTimeout(() => setToastVisible(false), TOAST_MS);
+    const flashTimer = setTimeout(() => setChangedCells(new Set()), FLASH_MS);
+    return () => {
+      clearTimeout(toastTimer);
+      clearTimeout(flashTimer);
+    };
   }, [rows]);
 
   return (
@@ -115,7 +167,9 @@ export function ProjectionPanel(): React.JSX.Element {
       <h2 className="projection-title">{t("rows.title")}</h2>
       <p className="projection-subtitle">{t("rows.subtitle")}</p>
       {rows &&
-        ROWS_TABLES.map((table) => <RowsTable key={table} table={table} rows={rows[table]} />)}
+        ROWS_TABLES.map((table) => (
+          <RowsTable key={table} table={table} rows={rows[table]} changedCells={changedCells} />
+        ))}
     </section>
   );
 }
