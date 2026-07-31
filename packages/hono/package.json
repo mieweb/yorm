@@ -28,7 +28,7 @@
     "yjs": "^13"
   },
   "devDependencies": {
-    "@hono/node-server": "^1.13.7",
+    "@hono/node-server": "^2.0.5",
     "@hono/node-ws": "^1.0.4",
     "hono": "^4.6.11",
     "typescript": "^5.6.3",
