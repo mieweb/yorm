@@ -89,6 +89,7 @@ const en = {
   "rows.title": "SQLite projection rows",
   "rows.subtitle": "Written by the projection engine from the canonical document — never by the UI",
   "rows.empty": "No rows",
+  "rows.updated": "SQL rows updated",
   "mode.label": "Mode",
   "mode.editor": "Editor",
   "mode.proposer": "Proposer",

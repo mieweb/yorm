@@ -8,6 +8,7 @@
  */
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@mieweb/ui";
 import { CONTACT_TABLES } from "example-fhir-patient-contacts/schema";
+import { useEffect, useRef, useState } from "react";
 
 import type { RowsSnapshot } from "../api";
 import { t } from "../i18n";
@@ -17,6 +18,8 @@ import "./projection-panel.scss";
 const ROWS_TABLES = [...CONTACT_TABLES, "yorm_proposal"] as const;
 
 type RowsTableName = (typeof ROWS_TABLES)[number];
+
+const TOAST_MS = 3000;
 
 const TABLE_COLUMNS: Record<RowsTableName, readonly string[]> = {
   contact: [
@@ -82,9 +85,33 @@ function RowsTable({ table, rows }: { table: RowsTableName; rows: RowsSnapshot[R
 
 export function ProjectionPanel(): React.JSX.Element {
   const rows = useCollabStore((state) => state.rows);
+  const previousRows = useRef<RowsSnapshot | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+
+  useEffect(() => {
+    if (!rows) {
+      return;
+    }
+    const previous = previousRows.current;
+    previousRows.current = rows;
+    // The first snapshot is the initial load, not a change worth announcing.
+    if (!previous || JSON.stringify(previous) === JSON.stringify(rows)) {
+      return;
+    }
+    setToastVisible(true);
+    const timer = setTimeout(() => setToastVisible(false), TOAST_MS);
+    return () => clearTimeout(timer);
+  }, [rows]);
 
   return (
     <section className="projection-panel" aria-label={t("rows.title")}>
+      {/* The app shell's live region already announces row updates. */}
+      <div
+        className={`projection-toast${toastVisible ? " projection-toast--visible" : ""}`}
+        aria-hidden="true"
+      >
+        {t("rows.updated")}
+      </div>
       <h2 className="projection-title">{t("rows.title")}</h2>
       <p className="projection-subtitle">{t("rows.subtitle")}</p>
       {rows &&

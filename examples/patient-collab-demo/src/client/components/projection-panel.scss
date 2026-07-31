@@ -2,6 +2,7 @@
    projection engine commits. */
 
 .projection-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -11,6 +12,39 @@
   background: var(--mieweb-card);
   box-shadow: var(--mieweb-shadow-card);
   overflow-x: auto;
+}
+
+.projection-toast {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--mieweb-primary-600);
+  border-radius: 999px;
+  background: var(--mieweb-primary-600);
+  color: var(--mieweb-card);
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: var(--mieweb-shadow-card);
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+
+.projection-toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projection-toast {
+    transition: none;
+    transform: none;
+  }
 }
 
 .projection-title {
