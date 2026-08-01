@@ -7,8 +7,9 @@
  * database identifiers, shown verbatim (they are not translatable UI copy).
  *
  * A commit is easy to miss in a wall of rows, so each new snapshot is diffed
- * against the previous one: a toast pops in the corner and the cells that
- * actually changed flash.
+ * against the previous one: a toast shows the SQL the projection engine just
+ * ran (as the driver executed it, values inlined) and the cells that actually
+ * changed flash.
  */
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@mieweb/ui";
 import { CONTACT_TABLES } from "example-fhir-patient-contacts/schema";
@@ -23,9 +24,12 @@ const ROWS_TABLES = [...CONTACT_TABLES, "yorm_proposal"] as const;
 
 type RowsTableName = (typeof ROWS_TABLES)[number];
 
-const TOAST_MS = 3000;
+/** Long enough to read a statement or two. */
+const TOAST_MS = 6000;
 /** Must outlast the `flash-update` keyframes in the stylesheet. */
 const FLASH_MS = 1500;
+/** A commit can touch every table; the toast shows the head of the batch. */
+const TOAST_STATEMENTS = 4;
 
 const TABLE_COLUMNS: Record<RowsTableName, readonly string[]> = {
   contact: [
@@ -131,6 +135,7 @@ function RowsTable({
 
 export function ProjectionPanel(): React.JSX.Element {
   const rows = useCollabStore((state) => state.rows);
+  const sqlStatements = useCollabStore((state) => state.sqlStatements);
   const previousRows = useRef<RowsSnapshot | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [changedCells, setChangedCells] = useState<ReadonlySet<string>>(new Set());
@@ -155,17 +160,32 @@ export function ProjectionPanel(): React.JSX.Element {
     };
   }, [rows]);
 
+  const shown = sqlStatements.slice(0, TOAST_STATEMENTS);
+  const overflow = sqlStatements.length - shown.length;
+
   return (
     <section className="projection-panel" aria-label={t("rows.title")}>
+      <h2 className="projection-title">{t("rows.title")}</h2>
+      <p className="projection-subtitle">{t("rows.subtitle")}</p>
       {/* The app shell's live region already announces row updates. */}
       <div
         className={`projection-toast${toastVisible ? " projection-toast--visible" : ""}`}
         aria-hidden="true"
       >
-        {t("rows.updated")}
+        <p className="projection-toast-title">{t("rows.updated")}</p>
+        {shown.length > 0 && (
+          <ol className="projection-toast-sql">
+            {shown.map((statement, index) => (
+              <li key={index}>
+                <code>{statement}</code>
+              </li>
+            ))}
+          </ol>
+        )}
+        {overflow > 0 && (
+          <p className="projection-toast-more">{t("rows.moreStatements", { count: overflow })}</p>
+        )}
       </div>
-      <h2 className="projection-title">{t("rows.title")}</h2>
-      <p className="projection-subtitle">{t("rows.subtitle")}</p>
       {rows &&
         ROWS_TABLES.map((table) => (
           <RowsTable key={table} table={table} rows={rows[table]} changedCells={changedCells} />

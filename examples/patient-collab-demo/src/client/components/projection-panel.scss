@@ -2,7 +2,6 @@
    projection engine commits. */
 
 .projection-panel {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -14,36 +13,75 @@
   overflow-x: auto;
 }
 
+/* In the panel flow rather than floating: a toast over the tables would hide
+   the very cells it is pointing at. */
 .projection-toast {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  z-index: 1;
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--mieweb-primary-600);
-  border-radius: 999px;
-  background: var(--mieweb-primary-600);
-  color: var(--mieweb-card);
-  font-size: 0.75rem;
-  font-weight: 600;
-  box-shadow: var(--mieweb-shadow-card);
-  opacity: 0;
-  transform: translateY(-8px);
-  pointer-events: none;
-  transition:
-    opacity 200ms ease,
-    transform 200ms ease;
+  display: none;
 }
 
 .projection-toast--visible {
-  opacity: 1;
-  transform: translateY(0);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--mieweb-primary-600);
+  border-radius: var(--mieweb-radius-lg);
+  background: var(--mieweb-card);
+  box-shadow: var(--mieweb-shadow-card);
+  animation: toast-in 200ms ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.projection-toast-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mieweb-primary-700);
+}
+
+.projection-toast-sql {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 9rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+
+  code {
+    display: block;
+    padding: 0.3rem 0.4rem;
+    border-radius: var(--mieweb-radius-sm, 0.25rem);
+    background: var(--mieweb-muted, rgb(0 0 0 / 0.04));
+    font-family: var(--mieweb-font-mono);
+    font-size: 0.7rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+
+.projection-toast-more {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--mieweb-muted-foreground);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .projection-toast {
-    transition: none;
-    transform: none;
+  .projection-toast--visible {
+    animation: none;
   }
 }
 

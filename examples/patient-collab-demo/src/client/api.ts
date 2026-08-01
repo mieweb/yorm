@@ -54,6 +54,12 @@ export interface RowsSnapshot {
   yorm_proposal: ProposalRow[];
 }
 
+/** Projection SQL the server has executed, as sent by `GET /api/sql`. */
+export interface SqlLog {
+  seq: number;
+  statements: string[];
+}
+
 async function postJson(path: string, body: unknown): Promise<Response> {
   const response = await fetch(path, {
     method: "POST",
@@ -82,6 +88,12 @@ export function postBlurSignal(): Promise<void> {
 export async function fetchRows(): Promise<RowsSnapshot> {
   const response = await fetch("/api/rows");
   return (await response.json()) as RowsSnapshot;
+}
+
+/** The projection statements executed since `since`, plus the new high-water mark. */
+export async function fetchSql(since: number): Promise<SqlLog> {
+  const response = await fetch(`/api/sql?since=${since}`);
+  return (await response.json()) as SqlLog;
 }
 
 export async function fetchProjectionPending(): Promise<boolean> {
