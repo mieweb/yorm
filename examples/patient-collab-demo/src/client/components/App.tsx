@@ -22,6 +22,7 @@ import { ViewToggle } from "./ViewToggle";
 import "./app-shell.scss";
 
 const REPO_URL = "https://github.com/mieweb/yorm";
+const DOCS_URL = `${REPO_URL}/tree/main/examples/patient-collab-demo#readme`;
 
 export function App(): React.JSX.Element {
   const view = useCollabStore((state) => state.view);
@@ -40,6 +41,14 @@ export function App(): React.JSX.Element {
             rel="noopener noreferrer"
           >
             {t("app.repo")}
+          </a>
+          <a
+            className="app-repo-link"
+            href={DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t("app.docs")}
           </a>
         </div>
         <div className="app-status">

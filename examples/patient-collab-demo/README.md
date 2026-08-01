@@ -3,17 +3,17 @@
 **🧪 Live sandbox: [yorm.os.mieweb.org](https://yorm.os.mieweb.org/)** — try it
 without cloning; open the link in two windows to collaborate.
 
-A collaborative FHIR **Patient** editor (PLAN.md Milestones 6 + 7c): two browsers
-edit the same Patient live over Yjs, while a SQLite projection panel shows the
-relational `contact*` rows the YORM projection engine derives from the canonical
-document — committed according to a selectable autosave policy. A role switcher
-turns a browser into a **proposer** whose edits become reviewable suggestions
-instead of direct writes, and a header view toggle switches between the demo's
-own **dense editor** (default) and the **eSheet**-rendered form.
+A collaborative FHIR **Patient** editor: two browsers edit the same Patient
+live over Yjs, while a SQLite projection panel shows the relational `contact*`
+rows the YORM projection engine derives from the canonical document —
+committed according to a selectable autosave policy. A mode switcher turns a
+browser into a **proposer** whose edits become reviewable suggestions instead
+of direct writes, and a header view toggle switches between the demo's own
+**dense editor** (default) and the **eSheet**-rendered form.
 
 What it demonstrates:
 
-- **6a — Yjs ⇄ Zustand bridge** ([src/client/store.ts](src/client/store.ts)): the
+- **Yjs ⇄ Zustand bridge** ([src/client/store.ts](src/client/store.ts)): the
   `Y.Doc` is the single source of truth. The store's `patient` slice is just
   `doc.getMap("resource").toJSON()` refreshed on every doc update; actions mutate
   Y types inside `doc.transact`. Awareness feeds a presence slice
@@ -29,7 +29,7 @@ What it demonstrates:
   anything the editor has no input for renders as read-only JSON chips in the
   **unmapped extras** strip. A colored dot next to a field shows a peer editing
   it; open suggestions render **inline next to the field** (see below).
-- **6b — eSheet Patient form** ([src/client/components/PatientForm.tsx](src/client/components/PatientForm.tsx)):
+- **eSheet Patient form** ([src/client/components/PatientForm.tsx](src/client/components/PatientForm.tsx)):
   the alternate view, rendered by `@esheet/renderer` from a `FormDefinition`
   built from [src/client/patientFields.ts](src/client/patientFields.ts)
   (given/family names, birth date, phone, email). The eSheet form store and the
@@ -41,22 +41,22 @@ What it demonstrates:
   suggestions render natively through the renderer's `collab` prop. The form
   definition itself is editable at runtime — see
   [Form config](#form-config-esheet-view).
-- **6c — UI shell** with `@mieweb/ui`: presence avatars, the autosave-policy
+- **UI shell** with `@mieweb/ui`: presence avatars, the autosave-policy
   dropdown, Save button (explicit mode), the **room status** dot + popup
   ([src/client/components/RoomStatus.tsx](src/client/components/RoomStatus.tsx)),
   and the live SQLite rows panel (polled every 750 ms). The `@mieweb/ui`
   package is **built from source** out of the [vendor/ui](../../vendor/ui)
   submodule — see [@mieweb/ui from source](#miewebui-from-source).
-- **6d — Playwright e2e** ([tests/](tests/)): convergence across two browser
+- **Playwright e2e** ([tests/](tests/)): convergence across two browser
   contexts, policy semantics (explicit → rows only after Save; on-blur →
   rows after blur), unmapped-field convergence, inline/mass proposal review,
   the view toggle, and the eSheet-native decorations + YAML form config
   ([tests/esheet.spec.ts](tests/esheet.spec.ts)).
-- **7c — Suggestion mode** ([src/client/components/ReviewPanel.tsx](src/client/components/ReviewPanel.tsx)):
+- **Suggestion mode** ([src/client/components/ReviewPanel.tsx](src/client/components/ReviewPanel.tsx)):
   an editor/proposer mode switcher, inline suggestion adornments on the dense
   editor, a top accumulating proposals bar with mass actions, and the
   `yorm_proposal` tracking table in the rows panel — see
-  [Write modes & proposed changes](#write-modes--proposed-changes-m7c).
+  [Write modes & proposed changes](#write-modes--proposed-changes).
 
 ## One-command startup
 
@@ -134,8 +134,8 @@ The projection state (polled from
 `GET /yorm/docs/Patient/p-demo/projection-state`) is shown by the room-status
 dot below, which turns amber while the projection is behind the document.
 
-The scheduler is **per document, shared by every window** (a v1 simplification
-of `@yorm/yjs`), so the dropdown is not a local preference: the same poll reads
+The scheduler is **per document, shared by every window** (a simplification in
+the current `@yorm/yjs`), so the dropdown is not a local preference: the same poll reads
 back `policy` and moves the picker, which is why another window's pick — or a
 server restart — visibly changes yours.
 
@@ -194,7 +194,7 @@ physician and another at `/?role=receptionist` — the receptionist never
 receives the address, yet a name fix flows back to the physician live.
 [tests/roles.spec.ts](tests/roles.spec.ts) covers both directions.
 
-## Write modes & proposed changes (M7c)
+## Write modes & proposed changes
 
 The header's **Mode** select switches between:
 

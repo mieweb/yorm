@@ -27,7 +27,9 @@ COMMIT;
 
 **🧪 Live sandbox demo: [yorm.os.mieweb.org](https://yorm.os.mieweb.org/)** — a
 two-browser collaborative FHIR Patient editor with live SQL projections. Open it
-in two windows to edit the same Patient in real time.
+in two windows to edit the same Patient in real time. See the
+[demo's README](examples/patient-collab-demo/README.md) for what it shows and
+how it works.
 
 YORM is an object-preserving, CRDT-aware mapping layer for turning serialized domain objects into versioned, replayable relational models.
 

@@ -49,6 +49,10 @@ body {
   color: var(--mieweb-primary-700);
   text-decoration: none;
 
+  & + & {
+    margin-left: 0.75rem;
+  }
+
   &:hover,
   &:focus-visible {
     text-decoration: underline;
