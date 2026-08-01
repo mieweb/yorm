@@ -18,6 +18,7 @@ import { ProjectionPanel } from "./ProjectionPanel";
 import { ReviewPanel } from "./ReviewPanel";
 import { ModeSwitcher } from "./ModeSwitcher";
 import { RoleSwitcher } from "./RoleSwitcher";
+import { UnmappedExtras } from "./UnmappedExtras";
 import { ViewToggle } from "./ViewToggle";
 import "./app-shell.scss";
 
@@ -71,7 +72,10 @@ export function App(): React.JSX.Element {
           <PolicyBar />
           {view === "dense" ? <PatientEditor /> : <PatientForm />}
         </section>
-        <ProjectionPanel />
+        <div className="projection-pane">
+          <ProjectionPanel />
+          <UnmappedExtras />
+        </div>
       </main>
       <div className="live-announcer" role="status" aria-live="polite">
         {announcement}

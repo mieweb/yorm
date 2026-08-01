@@ -86,6 +86,13 @@ body {
   box-shadow: var(--mieweb-shadow-card);
 }
 
+/* Right column: the SQL rows, then the keys that never reach them. */
+.projection-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 /* Visually hidden but announced by screen readers. */
 .live-announcer {
   position: absolute;

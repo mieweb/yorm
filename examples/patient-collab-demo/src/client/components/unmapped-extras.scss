@@ -1,0 +1,60 @@
+/* Unmapped extras — read-only JSON chips ("keep the object"), shown under the
+   projection panel as the counterpart to the SQL rows. */
+
+.unmapped-extras {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-lg);
+  background: var(--mieweb-card);
+  box-shadow: var(--mieweb-shadow-card);
+}
+
+.unmapped-extras-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mieweb-muted-foreground);
+}
+
+.unmapped-extras-hint {
+  margin: 0.15rem 0 0.4rem;
+  font-size: 0.72rem;
+  color: var(--mieweb-muted-foreground);
+}
+
+.unmapped-extras-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.unmapped-extra-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-full);
+  background: var(--mieweb-background);
+  font-size: 0.72rem;
+}
+
+.unmapped-extra-key {
+  font-weight: 600;
+  color: var(--mieweb-muted-foreground);
+  white-space: nowrap;
+}
+
+.unmapped-extra-json {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

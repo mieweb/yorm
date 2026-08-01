@@ -12,9 +12,8 @@
  * - a colored presence dot when a peer's awareness `focusedField` matches;
  * - focus/blur feed awareness presence and the `on-blur` projection signal.
  *
- * The trailing "unmapped extras" strip renders everything the editor has no
- * input for as read-only JSON chips — those keys live only in the canonical
- * document ("keep the object").
+ * Keys the editor has no input for are not shown here — they live under the
+ * projection panel in `UnmappedExtras`.
  */
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@mieweb/ui";
@@ -22,7 +21,7 @@ import type { Patient } from "@yorm/fhir";
 import type { ChangeIntent } from "@yorm/yjs";
 
 import { t } from "../i18n";
-import { buildDenseSections, unmappedExtras } from "../patientEditorFields";
+import { buildDenseSections } from "../patientEditorFields";
 import type { DenseFieldSpec } from "../patientEditorFields";
 import { formatFieldValue, samePath } from "../patientFields";
 import { roleMayEdit } from "../../rolePolicies";
@@ -44,7 +43,6 @@ export function PatientEditor(): React.JSX.Element | null {
     return null;
   }
   const open = proposals.filter((proposal) => proposal.status === "proposed");
-  const extras = unmappedExtras(patient);
 
   return (
     <div className="patient-editor">
@@ -81,20 +79,6 @@ export function PatientEditor(): React.JSX.Element | null {
           </div>
         </fieldset>
       ))}
-      {extras.length > 0 && (
-        <div className="editor-extras">
-          <h3 className="editor-extras-title">{t("editor.extras.title")}</h3>
-          <p className="editor-extras-hint">{t("editor.extras.hint")}</p>
-          <ul className="editor-extras-list" aria-label={t("editor.extras.title")}>
-            {extras.map((extra) => (
-              <li key={extra.key} className="editor-extra-chip">
-                <span className="editor-extra-key">{extra.key}</span>
-                <code className="editor-extra-json">{extra.json}</code>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }
