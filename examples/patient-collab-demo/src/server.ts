@@ -18,8 +18,9 @@
  *   open/resolved proposals are visible as SQL rows,
  * - `GET /api/rows` — the live contact-table + `yorm_proposal` rows for the
  *   projection panel,
- * - `GET /api/sql?since=<seq>` — the SQL the projection engine has executed
- *   since that sequence number, so the panel can show the actual statements,
+ * - `GET /api/sql?since=<seq>` — one entry per projection commit since that
+ *   sequence number, each carrying the SQL that commit wrote, so the panel can
+ *   attribute statements to the document change set that caused them,
  * - static serving of the built client (`dist/`) in prod mode.
  *
  * In dev the Vite server (port 5173) proxies `/yorm` + `/api` here.
@@ -34,6 +35,7 @@ import {
   loadContactsFixture,
   seedContacts,
 } from "example-fhir-patient-contacts/setup";
+import type { ProjectionCommit, ProjectionStatement } from "example-fhir-patient-contacts/setup";
 import { CONTACT_TABLES } from "example-fhir-patient-contacts/schema";
 import { proposalTrackingMapping } from "@yorm/yjs";
 
@@ -61,35 +63,61 @@ const ORDER_BY: Record<(typeof ROWS_TABLES)[number], string> = {
   yorm_proposal: "created_at, proposal_id",
 };
 
-const PROJECTION_WRITE_VERBS = ["insert", "update", "delete"];
+const PROJECTION_TABLES: readonly string[] = ROWS_TABLES;
 /** Enough history for a client that missed a poll or two; the panel shows far fewer. */
-const SQL_LOG_LIMIT = 100;
+const COMMIT_LOG_LIMIT = 50;
 
-let sqlSeq = 0;
-const sqlLog: { seq: number; sql: string }[] = [];
+interface DemoCommit {
+  seq: number;
+  documentId: string;
+  documentVersion: number;
+  origin: string;
+  statements: string[];
+}
+
+let commitSeq = 0;
+const commitLog: DemoCommit[] = [];
 
 /**
- * Records the statements that wrote the projection tables. The driver reports
- * every statement it runs — including this panel's own SELECTs and the
- * `yorm_*` bookkeeping — so only row-changing writes are kept.
+ * Renders a statement for display only — never executed. The engine binds
+ * parameters, so the placeholders are filled in here purely so the panel can
+ * show the values that were written.
  */
-function recordStatement(sql: string): void {
-  const text = sql.trim();
-  if (!PROJECTION_WRITE_VERBS.includes(text.slice(0, 6).toLowerCase())) {
-    return;
-  }
-  if (!ROWS_TABLES.some((table) => text.includes(table))) {
-    return;
-  }
-  sqlLog.push({ seq: ++sqlSeq, sql: text });
-  if (sqlLog.length > SQL_LOG_LIMIT) {
-    sqlLog.splice(0, sqlLog.length - SQL_LOG_LIMIT);
+function displaySql(statement: ProjectionStatement): string {
+  let index = 0;
+  return statement.sql.replace(/\?/g, () => {
+    const value = statement.params[index++];
+    if (value === null || value === undefined) return "NULL";
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    return `'${String(value).replace(/'/g, "''")}'`;
+  });
+}
+
+/**
+ * One entry per projection commit, so the panel can attribute statements to the
+ * document change set that caused them. The checkpoint advance and other
+ * `yorm_*` bookkeeping are dropped — the panel only shows the row tables.
+ */
+function recordCommit(commit: ProjectionCommit): void {
+  const statements = commit.statements
+    .filter((statement) => PROJECTION_TABLES.some((table) => statement.sql.includes(table)))
+    .map(displaySql);
+  if (statements.length === 0) return;
+  commitLog.push({
+    seq: ++commitSeq,
+    documentId: commit.documentId,
+    documentVersion: commit.documentVersion,
+    origin: commit.origin,
+    statements,
+  });
+  if (commitLog.length > COMMIT_LOG_LIMIT) {
+    commitLog.splice(0, commitLog.length - COMMIT_LOG_LIMIT);
   }
 }
 
 const poc = createPocServer({
   mappings: [proposalTrackingMapping("Patient")],
-  onStatement: recordStatement,
+  onCommit: recordCommit,
   honoOptions: {
     // Proposers may write the proposals subtree but never canonical state;
     // editors may write both.
@@ -144,8 +172,10 @@ poc.app.get("/api/rows", (c) => {
 
 poc.app.get("/api/sql", (c) => {
   const since = Number(c.req.query("since") ?? 0);
-  const statements = Number.isFinite(since) ? sqlLog.filter((entry) => entry.seq > since) : sqlLog;
-  return c.json({ seq: sqlSeq, statements: statements.map((entry) => entry.sql) });
+  const commits = Number.isFinite(since)
+    ? commitLog.filter((entry) => entry.seq > since)
+    : commitLog;
+  return c.json({ seq: commitSeq, commits });
 });
 
 // Prod mode: serve the built client. `serveStatic` roots are cwd-relative,

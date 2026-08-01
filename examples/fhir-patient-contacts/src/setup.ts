@@ -10,7 +10,7 @@ import { sql } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { Hono } from "hono";
 import { createSqliteAdapter } from "@yorm/drizzle";
-import type { SqliteAdapter } from "@yorm/drizzle";
+import type { ProjectionCommit, SqliteAdapter } from "@yorm/drizzle";
 import { fhirResource } from "@yorm/fhir";
 import type { Patient } from "@yorm/fhir";
 import { createHonoYorm } from "@yorm/hono";
@@ -23,8 +23,10 @@ import { patientContactsMapping } from "./mapping.js";
 import { CONTACTS_DDL, CONTACT_TABLES } from "./schema.js";
 import type { ContactRecord } from "./schema.js";
 
-export interface PocServer {
-  /** Hono app with the YORM plugin mounted at `/yorm`. */
+/** Re-exported so consumers can type an `onCommit` handler without depending on @yorm/drizzle. */
+export type { ProjectionCommit, ProjectionStatement } from "@yorm/drizzle";
+
+export interface PocServer {  /** Hono app with the YORM plugin mounted at `/yorm`. */
   app: Hono;
   yorm: Yorm;
   adapter: SqliteAdapter;
@@ -41,8 +43,8 @@ export interface PocServerOptions {
   mappings?: AnyMapping[];
   /** Extra plugin options (e.g. `onAuthorizeWrite`); the WebSocket upgrader is always wired. */
   honoOptions?: Omit<HonoYormOptions, "upgradeWebSocket">;
-  /** Forwarded to {@link createSqliteAdapter} — observes every executed statement. */
-  onStatement?: (sql: string) => void;
+  /** Called with the SQL each projection commit wrote. */
+  onCommit?: (commit: ProjectionCommit) => void;
 }
 
 /**
@@ -53,7 +55,7 @@ export interface PocServerOptions {
 export function createPocServer(options: PocServerOptions = {}): PocServer {
   const adapter = createSqliteAdapter({
     ...(options.file !== undefined ? { file: options.file } : {}),
-    ...(options.onStatement ? { onStatement: options.onStatement } : {}),
+    ...(options.onCommit ? { projections: { onCommit: options.onCommit } } : {}),
   });
   adapter.migrate();
   for (const ddl of CONTACTS_DDL) {

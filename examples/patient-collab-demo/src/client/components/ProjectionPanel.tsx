@@ -135,7 +135,7 @@ function RowsTable({
 
 export function ProjectionPanel(): React.JSX.Element {
   const rows = useCollabStore((state) => state.rows);
-  const sqlStatements = useCollabStore((state) => state.sqlStatements);
+  const sqlCommits = useCollabStore((state) => state.sqlCommits);
   const previousRows = useRef<RowsSnapshot | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [changedCells, setChangedCells] = useState<ReadonlySet<string>>(new Set());
@@ -160,8 +160,11 @@ export function ProjectionPanel(): React.JSX.Element {
     };
   }, [rows]);
 
-  const shown = sqlStatements.slice(0, TOAST_STATEMENTS);
-  const overflow = sqlStatements.length - shown.length;
+  const statements = sqlCommits.flatMap((commit) => commit.statements);
+  const shown = statements.slice(0, TOAST_STATEMENTS);
+  const overflow = statements.length - shown.length;
+  // The rows now reflect the last commit, so that is the version to name.
+  const version = sqlCommits.at(-1)?.documentVersion;
 
   return (
     <section className="projection-panel" aria-label={t("rows.title")}>
@@ -172,7 +175,9 @@ export function ProjectionPanel(): React.JSX.Element {
         className={`projection-toast${toastVisible ? " projection-toast--visible" : ""}`}
         aria-hidden="true"
       >
-        <p className="projection-toast-title">{t("rows.updated")}</p>
+        <p className="projection-toast-title">
+          {version === undefined ? t("rows.updated") : t("rows.updatedAt", { version })}
+        </p>
         {shown.length > 0 && (
           <ol className="projection-toast-sql">
             {shown.map((statement, index) => (

@@ -35,7 +35,14 @@ import {
   rejectProposal,
   setApiMode,
 } from "./api";
-import type { AcceptResult, DemoMode, PolicyKind, RowsSnapshot, SqlLog } from "./api";
+import type {
+  AcceptResult,
+  DemoMode,
+  PolicyKind,
+  ProjectionCommit,
+  RowsSnapshot,
+  SqlLog,
+} from "./api";
 import { t } from "./i18n";
 import { getFieldSpec } from "./patientFields";
 import type { FieldWriteSpec, PatientFieldId } from "./patientFields";
@@ -63,8 +70,8 @@ export interface CollabState {
   policy: PolicyKind;
   pendingProjection: boolean;
   rows: RowsSnapshot | null;
-  /** The projection SQL behind the most recent row change (empty until one happens). */
-  sqlStatements: string[];
+  /** The projection commits behind the most recent row change (empty until one happens). */
+  sqlCommits: ProjectionCommit[];
   /** Demo mode (M7c): editors write Y directly, proposers only suggest. */
   mode: DemoMode;
   /**
@@ -110,7 +117,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   policy: "every-change",
   pendingProjection: false,
   rows: null,
-  sqlStatements: [],
+  sqlCommits: [],
   mode: "editor",
   role: "physician",
   view: "dense",
@@ -269,32 +276,32 @@ async function refreshProjection(): Promise<void> {
   }
 }
 
-/** High-water mark of the SQL already pulled from `/api/sql`. */
+/** High-water mark of the commits already pulled from `/api/sql`. */
 let lastSqlSeq = 0;
 /**
  * Rows and SQL are separate requests, so a commit can land between the two —
- * statements are held here until the poll that actually sees the new rows.
+ * commits are held here until the poll that actually sees the new rows.
  */
-let bufferedStatements: string[] = [];
-const STATEMENT_BUFFER_LIMIT = 100;
+let bufferedCommits: ProjectionCommit[] = [];
+const COMMIT_BUFFER_LIMIT = 20;
 
 function applyProjection(rows: RowsSnapshot, pending: boolean, sql: SqlLog): void {
   const state = useCollabStore.getState();
   const firstSnapshot = state.rows === null;
   const changed = JSON.stringify(rows) !== JSON.stringify(state.rows);
   lastSqlSeq = sql.seq;
-  bufferedStatements = [...bufferedStatements, ...sql.statements].slice(-STATEMENT_BUFFER_LIMIT);
+  bufferedCommits = [...bufferedCommits, ...sql.commits].slice(-COMMIT_BUFFER_LIMIT);
   if (!changed) {
     useCollabStore.setState({ pendingProjection: pending });
     return;
   }
   // The seed runs before the first poll, so its SQL is history, not news.
-  const statements = firstSnapshot ? [] : bufferedStatements;
-  bufferedStatements = [];
+  const commits = firstSnapshot ? [] : bufferedCommits;
+  bufferedCommits = [];
   useCollabStore.setState({
     pendingProjection: pending,
     rows,
-    sqlStatements: statements,
+    sqlCommits: commits,
     announcement: firstSnapshot ? "" : t("announce.rowsUpdated"),
   });
 }

@@ -11,6 +11,7 @@
  * synchronous better-sqlite3 transaction.
  */
 import type {
+  Origin,
   ProjectionCheckpoint,
   ProjectionPlan,
   ProjectionStateRecord,
@@ -22,6 +23,7 @@ import type {
 import type { SQL, Table } from "drizzle-orm";
 import { and, eq, getTableName, sql } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import { yormProjectionState } from "../schema.js";
 
 /** A projection table registered for trusted name resolution. */
@@ -30,9 +32,28 @@ export interface ProjectionTableConfig {
   table: Table;
 }
 
+/** One statement as sent to the driver: parameterized SQL plus its bindings. */
+export interface ProjectionStatement {
+  sql: string;
+  params: unknown[];
+}
+
+/** Every statement one plan wrote, with the document change set that caused it. */
+export interface ProjectionCommit {
+  mapping: string;
+  documentId: string;
+  documentType: string;
+  documentVersion: number;
+  origin: Origin;
+  /** Plan operations in execution order, then the checkpoint advance. */
+  statements: ProjectionStatement[];
+}
+
 export interface DrizzleProjectionStoreOptions {
   /** Optional registry of Drizzle table objects, keyed by plan table name. */
   tables?: Record<string, ProjectionTableConfig>;
+  /** Called once per successfully applied plan with the SQL that plan produced. */
+  onCommit?: (commit: ProjectionCommit) => void;
 }
 
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -171,6 +192,8 @@ export function drizzleProjectionStore<TSchema extends Record<string, unknown>>(
   options?: DrizzleProjectionStoreOptions,
 ): ProjectionStore {
   const registry = options?.tables ?? {};
+  const onCommit = options?.onCommit;
+  const dialect = new SQLiteSyncDialect();
 
   /** Resolves a plan table name: registered Drizzle tables are trusted, everything else is validated. */
   function resolveTable(name: string): string {
@@ -181,13 +204,17 @@ export function drizzleProjectionStore<TSchema extends Record<string, unknown>>(
 
   return {
     async applyPlan(plan: ProjectionPlan): Promise<void> {
+      const statements: ProjectionStatement[] = [];
       db.transaction((tx) => {
         for (const op of plan.operations) {
           const table = resolveTable(op.table);
-          tx.run(op.kind === "upsert" ? buildUpsert(op, table) : buildReconcile(op, table));
+          const statement = op.kind === "upsert" ? buildUpsert(op, table) : buildReconcile(op, table);
+          if (onCommit) statements.push(dialect.sqlToQuery(statement));
+          tx.run(statement);
         }
         const checkpoint = plan.checkpoint;
-        tx.insert(yormProjectionState)
+        const advance = tx
+          .insert(yormProjectionState)
           .values({
             documentId: checkpoint.documentId,
             mappingName: checkpoint.mappingName,
@@ -206,8 +233,18 @@ export function drizzleProjectionStore<TSchema extends Record<string, unknown>>(
               projectedAt: new Date(),
               error: null,
             },
-          })
-          .run();
+          });
+        if (onCommit) statements.push(advance.toSQL());
+        advance.run();
+      });
+      // After the transaction, so a rollback reports no statements.
+      onCommit?.({
+        mapping: plan.mapping,
+        documentId: plan.documentId,
+        documentType: plan.documentType,
+        documentVersion: plan.documentVersion,
+        origin: plan.origin,
+        statements,
       });
     },
 

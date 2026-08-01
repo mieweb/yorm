@@ -90,6 +90,7 @@ const en = {
   "rows.subtitle": "Written by the projection engine from the canonical document — never by the UI",
   "rows.empty": "No rows",
   "rows.updated": "SQL rows updated",
+  "rows.updatedAt": "SQL rows updated · document v{version}",
   "rows.moreStatements": "+{count} more",
   "mode.label": "Mode",
   "mode.editor": "Editor",

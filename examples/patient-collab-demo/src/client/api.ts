@@ -54,10 +54,19 @@ export interface RowsSnapshot {
   yorm_proposal: ProposalRow[];
 }
 
-/** Projection SQL the server has executed, as sent by `GET /api/sql`. */
+/** One projection commit: the SQL a single document change set wrote. */
+export interface ProjectionCommit {
+  seq: number;
+  documentId: string;
+  documentVersion: number;
+  origin: string;
+  statements: string[];
+}
+
+/** Projection commits the server has applied, as sent by `GET /api/sql`. */
 export interface SqlLog {
   seq: number;
-  statements: string[];
+  commits: ProjectionCommit[];
 }
 
 async function postJson(path: string, body: unknown): Promise<Response> {
@@ -90,7 +99,7 @@ export async function fetchRows(): Promise<RowsSnapshot> {
   return (await response.json()) as RowsSnapshot;
 }
 
-/** The projection statements executed since `since`, plus the new high-water mark. */
+/** The projection commits applied since `since`, plus the new high-water mark. */
 export async function fetchSql(since: number): Promise<SqlLog> {
   const response = await fetch(`/api/sql?since=${since}`);
   return (await response.json()) as SqlLog;
