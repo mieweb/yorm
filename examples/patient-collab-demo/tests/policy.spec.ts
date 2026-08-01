@@ -8,7 +8,14 @@
 import { expect, test } from "@playwright/test";
 
 import { t } from "../src/client/i18n";
-import { fieldInput, openEditor, projectionPanel, runId, selectPolicy } from "./utils";
+import {
+  fieldInput,
+  openEditor,
+  projectionPanel,
+  projectionState,
+  runId,
+  selectPolicy,
+} from "./utils";
 
 test("explicit policy defers projection until Save", async ({ browser }) => {
   const pageA = await openEditor(browser);
@@ -21,12 +28,12 @@ test("explicit policy defers projection until Save", async ({ browser }) => {
   // Yjs convergence is live regardless of the projection policy…
   await expect(fieldInput(pageB, t("form.given"))).toHaveValue(given);
   // …but the projection is pending and the rows panel has not changed.
-  await expect(pageA.getByText(t("policy.pending"))).toBeVisible();
+  await expect(projectionState(pageA)).toHaveText(t("policy.pending"));
   await expect(projectionPanel(pageA).getByRole("cell", { name: given })).toHaveCount(0);
 
   await pageA.getByRole("button", { name: t("policy.save") }).click();
   await expect(projectionPanel(pageA).getByRole("cell", { name: given })).toBeVisible();
-  await expect(pageA.getByText(t("policy.saved"))).toBeVisible();
+  await expect(projectionState(pageA)).toHaveText(t("policy.saved"));
 });
 
 test("on-blur policy projects when the field blurs", async ({ browser }) => {
@@ -37,12 +44,12 @@ test("on-blur policy projects when the field blurs", async ({ browser }) => {
 
   const email = fieldInput(pageA, t("form.email"));
   await email.fill(address);
-  await expect(pageA.getByText(t("policy.pending"))).toBeVisible();
+  await expect(projectionState(pageA)).toHaveText(t("policy.pending"));
   await expect(projectionPanel(pageA).getByRole("cell", { name: address })).toHaveCount(0);
 
   await email.blur();
   await expect(projectionPanel(pageA).getByRole("cell", { name: address })).toBeVisible();
-  await expect(pageA.getByText(t("policy.saved"))).toBeVisible();
+  await expect(projectionState(pageA)).toHaveText(t("policy.saved"));
 
   // Restore the default policy for anyone running specs out of order.
   await selectPolicy(pageA, t("policy.on-blur"));

@@ -1,3 +1,7 @@
 [submodule "vendor/eSheet"]
 	path = vendor/eSheet
 	url = https://github.com/mieweb/eSheet
+[submodule "vendor/ui"]
+	path = vendor/ui
+	url = https://github.com/mieweb/ui
+	branch = feat/collab-status

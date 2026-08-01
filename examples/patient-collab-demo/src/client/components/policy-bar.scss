@@ -1,11 +1,41 @@
-/* Autosave policy control in the header — select plus optional Save button. */
+/*
+ * Autosave policy control in the header — select, projection-state dot and an
+ * optional Save button.
+ */
 
 .policy-bar {
   display: flex;
   align-items: flex-end;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .policy-picker {
   min-width: 11rem;
+}
+
+/* Projection state: amber while unwritten changes are queued, green once the
+   projection has caught up. The wording lives in .projection-state below. */
+.projection-dot {
+  align-self: center;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #16a34a;
+
+  &[data-state="pending"] {
+    background: #d97706;
+  }
+}
+
+/* Same wording for screen readers, announced when the state flips. */
+.projection-state {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }

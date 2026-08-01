@@ -1,16 +1,13 @@
 /**
  * UI shell (PLAN.md 6c): header with presence, the dense/eSheet view toggle,
- * the role/mode/autosave-policy controls and a single combined connection +
- * projection status badge; below it a "Sample Application" window frame
- * holding the suggestions bar and the Patient editor, the sample server's
- * live SQLite projection panel on the right, and a polite live region
- * announcing presence and row updates to assistive technologies.
+ * the role/mode/autosave-policy controls and the room-status dot; below it a
+ * "Sample Application" window frame holding the suggestions bar and the
+ * Patient editor, the sample server's live SQLite projection panel on the
+ * right, and a polite live region announcing presence and row updates to
+ * assistive technologies.
  */
-import { Badge } from "@mieweb/ui";
-
 import { t } from "../i18n";
 import { useCollabStore } from "../store";
-import type { ConnectionStatus } from "../store";
 import { PatientEditor } from "./PatientEditor";
 import { PatientForm } from "./PatientForm";
 import { PolicyBar } from "./PolicyBar";
@@ -19,32 +16,16 @@ import { ProjectionPanel } from "./ProjectionPanel";
 import { ReviewPanel } from "./ReviewPanel";
 import { ModeSwitcher } from "./ModeSwitcher";
 import { RoleSwitcher } from "./RoleSwitcher";
+import { RoomStatus } from "./RoomStatus";
 import { UnmappedExtras } from "./UnmappedExtras";
 import { ViewToggle } from "./ViewToggle";
 import "./app-shell.scss";
 
-const STATUS_VARIANT: Record<ConnectionStatus, "success" | "warning" | "danger"> = {
-  connected: "success",
-  connecting: "warning",
-  disconnected: "danger",
-};
-
-const STATUS_LABEL: Record<ConnectionStatus, string> = {
-  connected: t("connection.connected"),
-  connecting: t("connection.connecting"),
-  disconnected: t("connection.disconnected"),
-};
-
 const REPO_URL = "https://github.com/mieweb/yorm";
 
 export function App(): React.JSX.Element {
-  const status = useCollabStore((state) => state.status);
-  const pending = useCollabStore((state) => state.pendingProjection);
   const view = useCollabStore((state) => state.view);
   const announcement = useCollabStore((state) => state.announcement);
-  // One badge for the whole pipeline: a healthy socket with unsaved
-  // projection changes is a warning, not a success.
-  const statusVariant = status === "connected" && pending ? "warning" : STATUS_VARIANT[status];
 
   return (
     <div className="app-shell">
@@ -67,12 +48,7 @@ export function App(): React.JSX.Element {
           <RoleSwitcher />
           <ModeSwitcher />
           <PolicyBar />
-          <Badge variant={statusVariant} aria-label={t("status.label")} aria-live="polite">
-            {t("status.combined", {
-              connection: STATUS_LABEL[status],
-              projection: pending ? t("policy.pending") : t("policy.saved"),
-            })}
-          </Badge>
+          <RoomStatus />
         </div>
       </header>
       <main className="app-main">

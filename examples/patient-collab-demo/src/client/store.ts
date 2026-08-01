@@ -16,6 +16,7 @@
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 import { create } from "zustand";
+import type { CollabLogEntry } from "@mieweb/ui";
 import type { Patient } from "@yorm/fhir";
 import type { ChangeIntent } from "@yorm/yjs";
 
@@ -44,12 +45,11 @@ import type {
   SqlLog,
 } from "./api";
 import { t } from "./i18n";
+import type { StringKey } from "./i18n";
 import { getFieldSpec } from "./patientFields";
 import type { FieldWriteSpec, PatientFieldId } from "./patientFields";
 import { parseDemoRole } from "../rolePolicies";
 import type { DemoRole } from "../rolePolicies";
-
-export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
 /** Which Patient editor the left pane renders. */
 export type ViewKind = "dense" | "esheet";
@@ -63,10 +63,14 @@ export interface Peer {
 }
 
 export interface CollabState {
-  status: ConnectionStatus;
   /** Materialized Patient (null until the first sync). */
   patient: Patient | null;
   peers: Peer[];
+  /**
+   * The live WebSocket provider, re-created on every mode switch. Exposed so
+   * the room-status chip can bind `useYjsCollabStatus` to the current room.
+   */
+  provider: WebsocketProvider | null;
   policy: PolicyKind;
   pendingProjection: boolean;
   rows: RowsSnapshot | null;
@@ -84,6 +88,14 @@ export interface CollabState {
   view: ViewKind;
   /** The local presence name — used as the proposal actor / resolver. */
   selfName: string;
+  /** The local presence color, shared by the avatars and the room panel. */
+  selfColor: string;
+  /**
+   * Demo-side room events (policy switches, projection commits, suggestions,
+   * local field edits) merged into the room-status log next to the Yjs
+   * transport events `useYjsCollabStatus` records.
+   */
+  events: CollabLogEntry[];
   /** All change intents of the document, polled with the rows. */
   proposals: ChangeIntent[];
   /** Latest aria-live announcement (presence / row / proposal updates). */
@@ -110,10 +122,13 @@ const doc = new Y.Doc();
 const root = doc.getMap("resource");
 let provider: WebsocketProvider | null = null;
 
+/** The shared Y.Doc — exported so the room-status chip can observe it. */
+export { doc as collabDoc };
+
 export const useCollabStore = create<CollabState>((set, get) => ({
-  status: "connecting",
   patient: null,
   peers: [],
+  provider: null,
   policy: "on-blur",
   pendingProjection: false,
   rows: null,
@@ -122,6 +137,8 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   role: "physician",
   view: "dense",
   selfName: "",
+  selfColor: PRESENCE_COLORS[0]!,
+  events: [],
   proposals: [],
   announcement: "",
 
@@ -140,6 +157,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     doc.transact(() => {
       spec.write(root, value);
     });
+    logEvent("patch", t("event.edited", { field: spec.id }), "local");
   },
 
   setFocusedField(fieldId) {
@@ -148,6 +166,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
   selectPolicy(kind) {
     set({ policy: kind });
+    logEvent("sync", t("event.policy", { policy: t(`policy.${kind}` as StringKey) }));
     void postPolicy(kind).then(refreshProjection);
   },
 
@@ -193,6 +212,22 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
 /** Debounced proposer edits, one pending POST per field. */
 const proposeTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Newest-first cap of the demo event log (the chip shows the whole slice). */
+const EVENT_LIMIT = 50;
+let eventId = 0;
+
+/** Appends a demo-side entry to the room-status log. */
+function logEvent(
+  kind: CollabLogEntry["kind"],
+  detail: string,
+  origin?: CollabLogEntry["origin"],
+): void {
+  const entry: CollabLogEntry = { id: `demo-${++eventId}`, at: Date.now(), kind, detail, origin };
+  useCollabStore.setState((state) => ({
+    events: [entry, ...state.events].slice(0, EVENT_LIMIT),
+  }));
+}
 
 function queueProposal(spec: FieldWriteSpec, value: string): void {
   const existing = proposeTimers.get(spec.id);
@@ -243,6 +278,9 @@ function applyProposals(proposals: ChangeIntent[]): void {
     list.filter((intent) => intent.status === "proposed").length;
   const before = openCount(state.proposals);
   const now = openCount(proposals);
+  if (proposalsLoaded) {
+    logProposalChanges(state.proposals, proposals);
+  }
   useCollabStore.setState({
     proposals,
     ...(proposalsLoaded && now > before
@@ -252,6 +290,26 @@ function applyProposals(proposals: ChangeIntent[]): void {
         : {}),
   });
   proposalsLoaded = true;
+}
+
+/** Logs each suggestion that appeared or was resolved since the last poll. */
+function logProposalChanges(before: ChangeIntent[], after: ChangeIntent[]): void {
+  const previous = new Map(before.map((intent) => [intent.id, intent.status]));
+  for (const intent of after) {
+    const was = previous.get(intent.id);
+    const path = intent.path.join(".");
+    if (was === undefined) {
+      logEvent("patch", t("event.proposed", { actor: intent.actor, path }));
+    } else if (was !== intent.status) {
+      logEvent(
+        "patch",
+        t("event.proposalResolved", {
+          status: t(`review.status.${intent.status}` as StringKey),
+          path,
+        }),
+      );
+    }
+  }
 }
 
 async function refreshProposals(): Promise<void> {
@@ -298,6 +356,15 @@ function applyProjection(rows: RowsSnapshot, pending: boolean, sql: SqlLog): voi
   // The seed runs before the first poll, so its SQL is history, not news.
   const commits = firstSnapshot ? [] : bufferedCommits;
   bufferedCommits = [];
+  for (const commit of commits) {
+    logEvent(
+      "sync",
+      t("event.commit", {
+        statements: String(commit.statements.length),
+        version: String(commit.documentVersion),
+      }),
+    );
+  }
   useCollabStore.setState({
     pendingProjection: pending,
     rows,
@@ -350,15 +417,9 @@ function connectProvider(mode: DemoMode): void {
   provider.awareness.setLocalState({
     user: {
       name: useCollabStore.getState().selfName,
-      color: PRESENCE_COLORS[doc.clientID % PRESENCE_COLORS.length],
+      color: useCollabStore.getState().selfColor,
     },
     focusedField: null,
-  });
-
-  provider.on("status", (event: { status: string }) => {
-    useCollabStore.setState({
-      status: event.status === "connected" ? "connected" : "disconnected",
-    });
   });
 
   // Policy deny (1008): the policy lens refused one of this doc's updates
@@ -385,7 +446,7 @@ function connectProvider(mode: DemoMode): void {
     });
   });
   // The local state was set before the listener attached — seed the slice.
-  useCollabStore.setState({ peers: readPeers(provider.awareness) });
+  useCollabStore.setState({ peers: readPeers(provider.awareness), provider });
 }
 
 /** Connects the Y.Doc, awareness, and poll loop. Idempotent (HMR-safe). */
@@ -407,6 +468,7 @@ export function startCollab(): void {
     role: parseDemoRole(params.get("role")),
     view: params.get("view") === "esheet" ? "esheet" : "dense",
     selfName: t("presence.userName", { n: doc.clientID % 1000 }),
+    selfColor: PRESENCE_COLORS[doc.clientID % PRESENCE_COLORS.length]!,
   });
 
   doc.on("update", () => {

@@ -1,7 +1,8 @@
 /**
  * Autosave policy control (PLAN.md 6c / Decision #10): a header select that
  * sets the session's projection trigger policy, plus a Save button under
- * `explicit`. The resulting projection state shows in the app status badge.
+ * `explicit`. The dot beside it is the resulting projection state — amber
+ * while the document has changes the projection has not written yet.
  */
 import { Button, Select } from "@mieweb/ui";
 
@@ -21,6 +22,8 @@ export function PolicyBar(): React.JSX.Element {
   const policy = useCollabStore((state) => state.policy);
   const selectPolicy = useCollabStore((state) => state.selectPolicy);
   const save = useCollabStore((state) => state.save);
+  const pending = useCollabStore((state) => state.pendingProjection);
+  const projectionLabel = pending ? t("policy.pending") : t("policy.saved");
 
   return (
     <div className="policy-bar">
@@ -34,6 +37,15 @@ export function PolicyBar(): React.JSX.Element {
           size="sm"
         />
       </div>
+      <span
+        className="projection-dot"
+        data-state={pending ? "pending" : "saved"}
+        title={projectionLabel}
+        aria-hidden="true"
+      />
+      <span className="projection-state" role="status" aria-live="polite">
+        {projectionLabel}
+      </span>
       {policy === "explicit" && (
         <Button variant="primary" size="sm" onClick={save} aria-label={t("policy.save")}>
           {t("policy.save")}

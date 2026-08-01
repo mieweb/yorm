@@ -93,9 +93,6 @@ importers:
       '@hono/node-server':
         specifier: ^2.0.5
         version: 2.0.11(hono@4.12.30)
-      '@mieweb/ui':
-        specifier: ^0.6.1
-        version: 0.6.1(@esheet/renderer@0.0.3(@types/react@18.3.31)(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@yorm/fhir':
         specifier: workspace:*
         version: link:../../packages/fhir
@@ -484,23 +481,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@esheet/adapters@0.0.3':
-    resolution: {integrity: sha512-RDRQ/MRWbBWot1ETqT7+yvDhj4mt42JQlauiEa0GID2GyibkWpxar0GL9IFkDYrOh48NdiXJNMKPMFPpwAp7Ew==}
-
-  '@esheet/core@0.0.3':
-    resolution: {integrity: sha512-1jMrAyUWLGRB418jRFijtQv/9I08hCh2cQjzlxzgXYV3DucsIGepE7bYBhOeU/dn1wY9vLYbXfTSjhPA1ToZZw==}
-
-  '@esheet/fields@0.0.3':
-    resolution: {integrity: sha512-2TFHfUH+bI/ZuUJ7Xu8dWIDQWm0dSxLDGqqVY51ko8jzVTSpmhtqCgDGRaD9O393OlHg/+AHg+ElSV7qwDU6Ng==}
-
-  '@esheet/renderer@0.0.3':
-    resolution: {integrity: sha512-4h1Tui598E8A3oglDgxj9aCPqZ8risrb5jmZpvJSJBOkbbTWrIqS2BO1c95Fyg+u1FuNNCLr4aV5a+n/+lli3Q==}
-    peerDependencies:
-      react: '>=19.0.0'
-    peerDependenciesMeta:
-      react:
-        optional: true
-
   '@eslint-community/eslint-utils@4.9.1':
     resolution: {integrity: sha512-phrYmNiYppR7znFEdqgfWHXR6NCkZEK7hwWDHZUjit/2/U0r6XvkDl0SYnoM51Hq7FhCGdLDT6zxCCOY1hexsQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
@@ -587,58 +567,6 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
-
-  '@mieweb/ui@0.3.0-dev.108':
-    resolution: {integrity: sha512-cNG8USU4usMJhNGxL0Wek8h37C1URyZArjE1vtwpv2nEFD38yN2Vsf0ky9cEdGdPJwV6a8hcXCT/6FnFa1Wo7w==}
-    engines: {node: '>=20.0.0'}
-    peerDependencies:
-      '@ozwell/react': '>=0.1.0'
-      ag-grid-community: '>=32.0.0'
-      ag-grid-react: '>=32.0.0'
-      datavis-ace: '=4.0.0-PRE.2'
-      react: '>=18.0.0'
-      react-dom: '>=18.0.0'
-      wavesurfer.js: '>=7.0.0'
-    peerDependenciesMeta:
-      '@ozwell/react':
-        optional: true
-      ag-grid-community:
-        optional: true
-      ag-grid-react:
-        optional: true
-      datavis-ace:
-        optional: true
-      wavesurfer.js:
-        optional: true
-
-  '@mieweb/ui@0.6.1':
-    resolution: {integrity: sha512-M1zHSukvCs9fTXTa/fZfHKueWOhOv8oomq0Mic9QhXcVMkN6i+6/JQdboEEJRtQYUhxGwNoTFbYIzMpbODvoXg==}
-    engines: {node: '>=20.0.0'}
-    peerDependencies:
-      '@esheet/builder': '>=0.0.2'
-      '@esheet/renderer': '>=0.0.2'
-      '@ozwell/react': '>=0.1.0'
-      ag-grid-community: '>=32.0.0'
-      ag-grid-react: '>=32.0.0'
-      datavis-ace: '=4.0.0-PRE.2'
-      react: '>=18.0.0'
-      react-dom: '>=18.0.0'
-      wavesurfer.js: '>=7.0.0'
-    peerDependenciesMeta:
-      '@esheet/builder':
-        optional: true
-      '@esheet/renderer':
-        optional: true
-      '@ozwell/react':
-        optional: true
-      ag-grid-community:
-        optional: true
-      ag-grid-react:
-        optional: true
-      datavis-ace:
-        optional: true
-      wavesurfer.js:
-        optional: true
 
   '@parcel/watcher-android-arm64@2.5.6':
     resolution: {integrity: sha512-YQxSS34tPF/6ZG7r/Ih9xy+kP/WwediEUsqmtf0cuCV5TPPKw/PQHRhueUo6JdeFJaqV3pyjm0GdYjZotbRt/A==}
@@ -854,9 +782,6 @@ packages:
     resolution: {integrity: sha512-BfzEnDJOt9T8M989/lA37EcJgat01wLRnoi5dQf3QzOH7jzpqTAzdDbVfRljVr5r+jzKqpbHeyOfAaXxAd0PAA==}
     cpu: [x64]
     os: [win32]
-
-  '@swc/helpers@0.5.23':
-    resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
 
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
@@ -1093,16 +1018,9 @@ packages:
   chownr@1.1.4:
     resolution: {integrity: sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==}
 
-  class-variance-authority@0.7.1:
-    resolution: {integrity: sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg==}
-
   cliui@8.0.1:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
     engines: {node: '>=12'}
-
-  clsx@2.1.1:
-    resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
-    engines: {node: '>=6'}
 
   color-convert@2.0.1:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
@@ -1405,10 +1323,6 @@ packages:
     resolution: {integrity: sha512-oahGvuMGQlPw/ivIYBjVSrWAfWLBeku5tpPE2fOPLi+WHffIWbuh2tCjhyQhTBPMf5E9jDEH4FOmTYgYwbKwtQ==}
     engines: {node: '>=18'}
 
-  google-libphonenumber@3.2.44:
-    resolution: {integrity: sha512-9p2TghluF2LTChFMLWsDRD5N78SZDsILdUk4gyqYxBXluCyxoPiOq+Fqt7DKM+LUd33+OgRkdrc+cPR93AypCQ==}
-    engines: {node: '>=0.10'}
-
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
@@ -1520,15 +1434,6 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
-
-  lucide-react@0.562.0:
-    resolution: {integrity: sha512-82hOAu7y0dbVuFfmO4bYF1XEwYk/mEbM5E+b1jgci/udUBEE/R7LF5Ip0CCEmXe8AybRM8L+04eP+LGZeDvkiw==}
-    peerDependencies:
-      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
-  luxon@3.7.2:
-    resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}
-    engines: {node: '>=12'}
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -1661,21 +1566,12 @@ packages:
     peerDependencies:
       react: ^18.3.1
 
-  react-dom@19.2.7:
-    resolution: {integrity: sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==}
-    peerDependencies:
-      react: ^19.2.7
-
   react-refresh@0.17.0:
     resolution: {integrity: sha512-z6F7K9bV85EfseRCp2bzrpyQ0Gkw1uLoCel9XBVWPg/TjRj94SkJzUTGfOa4bs7iJvBWtQG0Wq7wnI0syw3EBQ==}
     engines: {node: '>=0.10.0'}
 
   react@18.3.1:
     resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
-    engines: {node: '>=0.10.0'}
-
-  react@19.2.7:
-    resolution: {integrity: sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ==}
     engines: {node: '>=0.10.0'}
 
   readable-stream@3.6.2:
@@ -1713,9 +1609,6 @@ packages:
   scheduler@0.23.2:
     resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
 
-  scheduler@0.27.0:
-    resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
-
   semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
@@ -1745,9 +1638,6 @@ packages:
 
   simple-get@4.0.1:
     resolution: {integrity: sha512-brv7p5WgH0jmQJr1ZDDfKDOSeWWg+OVypG99A/5vYGPqJ6pxiaHLy8nxtFjBA7oMa01ebA9gfh1uMCFqOuXxvA==}
-
-  sortablejs@1.15.7:
-    resolution: {integrity: sha512-Kk8wLQPlS+yi1ZEf48a4+fzHa4yxjC30M/Sr2AnQu+f/MPwvvX9XjZ6OWejiz8crBsLwSq8GHqaxaET7u6ux0A==}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -1788,9 +1678,6 @@ packages:
   supports-color@8.1.1:
     resolution: {integrity: sha512-MpUEN2OodtUzxvKQl72cUF7RQ5EiHsGvSsVG0ia9c5RbWGL2CI4C7EpPS8UTBIplnlzZiNuV56w+FuNxy3ty2Q==}
     engines: {node: '>=10'}
-
-  tailwind-merge@2.6.1:
-    resolution: {integrity: sha512-Oo6tHdpZsGpkKG88HJ8RR1rg/RdnEkQEfMoEk2x1XRI3F1AxeU+ijRXpiVUF4UbLfcxxRGw6TbUINKYdWVsQTQ==}
 
   tar-fs@2.1.5:
     resolution: {integrity: sha512-OboTd8mmMhZDNPV+UjQcK9yKAatXu2aJ+r1w4im1Otd4M4fl2hwvdoXUxIYHFTHWK/3y3FarBP70v3vwmGlOxw==}
@@ -2014,9 +1901,6 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod@4.4.3:
-    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
-
   zustand@5.0.14:
     resolution: {integrity: sha512-/8tAspM5LMPr28b3fwLYrtdj77ECpfZviaP75CMTnwO8ISyaE4GDIG/9rDDYq/cH9D2Xw2A2RXglLInmVBQB/g==}
     engines: {node: '>=12.20.0'}
@@ -2227,79 +2111,6 @@ snapshots:
   '@esbuild/win32-x64@0.25.12':
     optional: true
 
-  '@esheet/adapters@0.0.3(@types/react@18.3.31)(react@18.3.1)':
-    dependencies:
-      '@esheet/core': 0.0.3(@types/react@18.3.31)(react@18.3.1)
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - '@types/react'
-      - immer
-      - react
-      - use-sync-external-store
-    optional: true
-
-  '@esheet/core@0.0.3(@types/react@18.3.31)(react@18.3.1)':
-    dependencies:
-      tslib: 2.8.1
-      zod: 4.4.3
-      zustand: 5.0.14(@types/react@18.3.31)(react@18.3.1)
-    transitivePeerDependencies:
-      - '@types/react'
-      - immer
-      - react
-      - use-sync-external-store
-    optional: true
-
-  '@esheet/core@0.0.3(@types/react@18.3.31)(react@19.2.7)':
-    dependencies:
-      tslib: 2.8.1
-      zod: 4.4.3
-      zustand: 5.0.14(@types/react@18.3.31)(react@19.2.7)
-    transitivePeerDependencies:
-      - '@types/react'
-      - immer
-      - react
-      - use-sync-external-store
-    optional: true
-
-  '@esheet/fields@0.0.3(@types/react@18.3.31)':
-    dependencies:
-      '@esheet/core': 0.0.3(@types/react@18.3.31)(react@19.2.7)
-      '@mieweb/ui': 0.3.0-dev.108(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
-      sortablejs: 1.15.7
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - '@ozwell/react'
-      - '@types/react'
-      - ag-grid-community
-      - ag-grid-react
-      - datavis-ace
-      - immer
-      - use-sync-external-store
-      - wavesurfer.js
-    optional: true
-
-  '@esheet/renderer@0.0.3(@types/react@18.3.31)(react@18.3.1)':
-    dependencies:
-      '@esheet/adapters': 0.0.3(@types/react@18.3.31)(react@18.3.1)
-      '@esheet/core': 0.0.3(@types/react@18.3.31)(react@18.3.1)
-      '@esheet/fields': 0.0.3(@types/react@18.3.31)
-      js-yaml: 4.3.0
-    optionalDependencies:
-      react: 18.3.1
-    transitivePeerDependencies:
-      - '@ozwell/react'
-      - '@types/react'
-      - ag-grid-community
-      - ag-grid-react
-      - datavis-ace
-      - immer
-      - use-sync-external-store
-      - wavesurfer.js
-    optional: true
-
   '@eslint-community/eslint-utils@4.9.1(eslint@9.39.5)':
     dependencies:
       eslint: 9.39.5
@@ -2393,33 +2204,6 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
-
-  '@mieweb/ui@0.3.0-dev.108(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
-    dependencies:
-      '@swc/helpers': 0.5.23
-      class-variance-authority: 0.7.1
-      clsx: 2.1.1
-      google-libphonenumber: 3.2.44
-      lucide-react: 0.562.0(react@19.2.7)
-      luxon: 3.7.2
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
-      tailwind-merge: 2.6.1
-    optional: true
-
-  '@mieweb/ui@0.6.1(@esheet/renderer@0.0.3(@types/react@18.3.31)(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@swc/helpers': 0.5.23
-      class-variance-authority: 0.7.1
-      clsx: 2.1.1
-      google-libphonenumber: 3.2.44
-      lucide-react: 0.562.0(react@18.3.1)
-      luxon: 3.7.2
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      tailwind-merge: 2.6.1
-    optionalDependencies:
-      '@esheet/renderer': 0.0.3(@types/react@18.3.31)(react@18.3.1)
 
   '@parcel/watcher-android-arm64@2.5.6':
     optional: true
@@ -2562,10 +2346,6 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.62.2':
     optional: true
-
-  '@swc/helpers@0.5.23':
-    dependencies:
-      tslib: 2.8.1
 
   '@types/babel__core@7.20.5':
     dependencies:
@@ -2860,17 +2640,11 @@ snapshots:
 
   chownr@1.1.4: {}
 
-  class-variance-authority@0.7.1:
-    dependencies:
-      clsx: 2.1.1
-
   cliui@8.0.1:
     dependencies:
       string-width: 4.2.3
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
-
-  clsx@2.1.1: {}
 
   color-convert@2.0.1:
     dependencies:
@@ -3091,8 +2865,6 @@ snapshots:
 
   globals@14.0.0: {}
 
-  google-libphonenumber@3.2.44: {}
-
   has-flag@4.0.0: {}
 
   hono@4.12.30: {}
@@ -3174,17 +2946,6 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
-
-  lucide-react@0.562.0(react@18.3.1):
-    dependencies:
-      react: 18.3.1
-
-  lucide-react@0.562.0(react@19.2.7):
-    dependencies:
-      react: 19.2.7
-    optional: true
-
-  luxon@3.7.2: {}
 
   magic-string@0.30.21:
     dependencies:
@@ -3311,20 +3072,11 @@ snapshots:
       react: 18.3.1
       scheduler: 0.23.2
 
-  react-dom@19.2.7(react@19.2.7):
-    dependencies:
-      react: 19.2.7
-      scheduler: 0.27.0
-    optional: true
-
   react-refresh@0.17.0: {}
 
   react@18.3.1:
     dependencies:
       loose-envify: 1.4.0
-
-  react@19.2.7:
-    optional: true
 
   readable-stream@3.6.2:
     dependencies:
@@ -3387,9 +3139,6 @@ snapshots:
     dependencies:
       loose-envify: 1.4.0
 
-  scheduler@0.27.0:
-    optional: true
-
   semver@6.3.1: {}
 
   semver@7.8.5: {}
@@ -3411,9 +3160,6 @@ snapshots:
       decompress-response: 6.0.0
       once: 1.4.0
       simple-concat: 1.0.1
-
-  sortablejs@1.15.7:
-    optional: true
 
   source-map-js@1.2.1: {}
 
@@ -3450,8 +3196,6 @@ snapshots:
   supports-color@8.1.1:
     dependencies:
       has-flag: 4.0.0
-
-  tailwind-merge@2.6.1: {}
 
   tar-fs@2.1.5:
     dependencies:
@@ -3662,16 +3406,7 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod@4.4.3:
-    optional: true
-
   zustand@5.0.14(@types/react@18.3.31)(react@18.3.1):
     optionalDependencies:
       '@types/react': 18.3.31
       react: 18.3.1
-
-  zustand@5.0.14(@types/react@18.3.31)(react@19.2.7):
-    optionalDependencies:
-      '@types/react': 18.3.31
-      react: 19.2.7
-    optional: true

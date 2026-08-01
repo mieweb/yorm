@@ -43,6 +43,14 @@ export function fieldInput(page: Page, label: string): Locator {
   return page.getByLabel(label, { exact: true });
 }
 
+/**
+ * The header's projection state. Sighted users get the dot next to the
+ * autosave picker; the wording lives in this screen-reader-only status.
+ */
+export function projectionState(page: Page): Locator {
+  return page.locator(".projection-state");
+}
+
 /** The live SQLite rows panel. */
 export function projectionPanel(page: Page): Locator {
   return page.getByRole("region", { name: t("rows.title") });

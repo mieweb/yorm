@@ -15,9 +15,10 @@ The unit only *runs* the server; the client bundle and workspace packages must
 already be built:
 
 ```sh
-git submodule update --init --recursive          # vendor/eSheet
+git submodule update --init --recursive          # vendor/eSheet, vendor/ui
 pnpm install                                      # workspace deps
 pnpm --filter patient-collab-demo esheet:build    # build vendored eSheet
+pnpm --filter patient-collab-demo ui:build        # build vendored @mieweb/ui
 pnpm build                                         # compile workspace packages (tsc -b)
 pnpm --filter patient-collab-demo build            # vite build -> dist/
 ```

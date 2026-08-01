@@ -42,8 +42,11 @@ What it demonstrates:
   definition itself is editable at runtime — see
   [Form config](#form-config-esheet-view).
 - **6c — UI shell** with `@mieweb/ui`: presence avatars, the autosave-policy
-  dropdown, Save button (explicit mode), a combined connection + projection
-  status badge, and the live SQLite rows panel (polled every 750 ms).
+  dropdown, Save button (explicit mode), a projection dot, the **room status**
+  dot + popup ([src/client/components/RoomStatus.tsx](src/client/components/RoomStatus.tsx)),
+  and the live SQLite rows panel (polled every 750 ms). The `@mieweb/ui`
+  package is **built from source** out of the [vendor/ui](../../vendor/ui)
+  submodule — see [@mieweb/ui from source](#miewebui-from-source).
 - **6d — Playwright e2e** ([tests/](tests/)): convergence across two browser
   contexts, policy semantics (explicit → rows only after Save; on-blur →
   rows after blur), unmapped-field convergence, inline/mass proposal review,
@@ -59,6 +62,7 @@ What it demonstrates:
 
 ```sh
 pnpm --filter patient-collab-demo esheet:build   # once: build vendor/eSheet (see below)
+pnpm --filter patient-collab-demo ui:build       # once: build vendor/ui (see below)
 pnpm --filter patient-collab-demo dev
 ```
 
@@ -126,8 +130,29 @@ SQLite projection commits.
 | Idle (30 s)  | after 30 s without edits                                          |
 | Explicit     | only when the Save button posts `POST …/flush`                   |
 
-The projection half of the header status badge polls
-`GET /yorm/docs/Patient/p-demo/projection-state`.
+The projection dot next to the policy dropdown polls
+`GET /yorm/docs/Patient/p-demo/projection-state` (green = saved, amber =
+pending; the wording stays available to screen readers).
+
+## Room status
+
+The header ends with a single **room status dot** — `@mieweb/ui`'s
+`CollabStatus` in `compact` mode, bound to the live `Y.Doc` + `y-websocket`
+provider by `useYjsCollabStatus`
+([src/client/components/RoomStatus.tsx](src/client/components/RoomStatus.tsx)).
+The dot alone carries the connection state (its accessible name is
+“Room status — Connected — Ann is editing”); clicking it opens a popup with:
+
+- the document, socket URL, client id and your own identity (name · role · mode);
+- **In the room (N)** — the occupants, each with their presence color;
+- **Room activity** — a merged, newest-first log of peers joining/leaving,
+  document updates, sync transitions, field edits, autosave-policy changes,
+  suggestions proposed/accepted/rejected, and every SQL projection commit
+  (statement count + document version).
+
+The Yjs-derived half of that log comes from the hook; the demo-specific
+entries are appended by the store (`events` in
+[src/client/store.ts](src/client/store.ts)) and merged in `RoomStatus`.
 
 ## Roles — the policy lens (role-security POC)
 
@@ -236,6 +261,25 @@ registry. Their runtime deps resolve from `vendor/eSheet/node_modules`; React
 stays this example's copy via `resolve.dedupe` (+ a `react` tsconfig `paths`
 pin for types). See the [eSheet repo](https://github.com/mieweb/eSheet) for
 the packages' own docs.
+
+## @mieweb/ui from source
+
+`@mieweb/ui` also comes from a git submodule — [vendor/ui](../../vendor/ui),
+branch `feat/collab-status` ([mieweb/ui#350](https://github.com/mieweb/ui/pull/350))
+— because `CollabStatus` / `useYjsCollabStatus` are not in a published release
+yet. This demo additionally extends the component with the `compact` trigger
+and the occupants section it needs; those edits live **inside the submodule**
+so they can be proposed back to that PR.
+
+```sh
+git submodule update --init --recursive
+pnpm --filter patient-collab-demo ui:build
+```
+
+The script runs `npm ci || npm install` plus `npm run build` (tsup + Tailwind)
+inside the submodule; the demo consumes `vendor/ui/dist` through Vite
+`resolve.alias` + tsconfig `paths`, exactly like eSheet. Drop the submodule
+and switch back to the registry once the PR ships.
 
 ## Form config (eSheet view)
 
