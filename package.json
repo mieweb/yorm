@@ -27,7 +27,7 @@
   },
   "pnpm": {
     "overrides": {
-      "esbuild": ">=0.25.0"
+      "esbuild": "^0.25.0"
     },
     "onlyBuiltDependencies": [
       "better-sqlite3",
