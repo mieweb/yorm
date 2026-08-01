@@ -24,11 +24,15 @@ import {
   propose,
   reviewPanel,
   runId,
+  selectPolicy,
 } from "./utils";
 
 test("unmapped field (gender) converges but is never projected", async ({ browser }) => {
   const pageA = await openEditor(browser);
   const pageB = await openEditor(browser);
+
+  // Project on every change so the assertions below need no blur trigger.
+  await selectPolicy(pageA, t("policy.every-change"));
 
   // Toggle away from the persisted value so the edit is never a no-op.
   const gender = fieldInput(pageA, t("editor.gender"));
@@ -50,6 +54,8 @@ test("inline accept next to the field applies the suggestion", async ({ browser 
   const editor = await openEditor(browser);
   const proposer = await openEditor(browser, "/?mode=proposer");
   const family = `Inline-${runId}`;
+
+  await selectPolicy(editor, t("policy.every-change"));
 
   const proposalId = await propose(proposer, t("form.family"), family);
 
@@ -79,6 +85,8 @@ test("Accept all mass-applies every open suggestion", async ({ browser }) => {
   const proposer = await openEditor(browser, "/?mode=proposer");
   const phone = `(02) 5551 ${runId}`;
   const email = `mass-${runId}@example.org`;
+
+  await selectPolicy(editor, t("policy.every-change"));
 
   const phoneId = await propose(proposer, t("form.phone"), phone);
   const emailId = await propose(proposer, t("form.email"), email);

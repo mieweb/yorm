@@ -75,15 +75,51 @@ body {
   }
 }
 
-.editor-pane {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1.25rem;
+/* Left column: the editor lives in a window frame so it reads as the
+   consuming app, not as part of YORM. */
+.sample-app {
   border: 1px solid var(--mieweb-border);
   border-radius: var(--mieweb-radius-lg);
   background: var(--mieweb-card);
   box-shadow: var(--mieweb-shadow-card);
+  overflow: hidden;
+}
+
+.sample-app-chrome {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--mieweb-border);
+  background: var(--mieweb-muted, rgb(0 0 0 / 0.04));
+}
+
+.sample-app-dots {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.sample-app-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--mieweb-border);
+}
+
+.sample-app-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mieweb-muted-foreground);
+}
+
+.sample-app-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
 }
 
 /* Right column: the SQL rows, then the keys that never reach them. */

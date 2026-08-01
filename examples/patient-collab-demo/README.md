@@ -41,9 +41,9 @@ What it demonstrates:
   suggestions render natively through the renderer's `collab` prop. The form
   definition itself is editable at runtime — see
   [Form config](#form-config-esheet-view).
-- **6c — UI shell** with `@mieweb/ui`: presence avatars, connection status, the
-  autosave-policy dropdown, Save button (explicit mode), an "unsaved projection
-  changes" indicator, and the live SQLite rows panel (polled every 750 ms).
+- **6c — UI shell** with `@mieweb/ui`: presence avatars, the autosave-policy
+  dropdown, Save button (explicit mode), a combined connection + projection
+  status badge, and the live SQLite rows panel (polled every 750 ms).
 - **6d — Playwright e2e** ([tests/](tests/)): convergence across two browser
   contexts, policy semantics (explicit → rows only after Save; on-blur →
   rows after blur), unmapped-field convergence, inline/mass proposal review,
@@ -119,14 +119,14 @@ Selected in the header dropdown → `POST /yorm/docs/Patient/p-demo/policy`.
 Document sync over Yjs is **always live**; the policy only controls when the
 SQLite projection commits.
 
-| Policy       | Projection commits…                                   |
-| ------------ | ----------------------------------------------------- |
-| Every change | on every document update (default)                    |
-| On blur      | when a field blur posts `POST …/signal {kind:"blur"}` |
-| Idle (30 s)  | after 30 s without edits                              |
-| Explicit     | only when the Save button posts `POST …/flush`        |
+| Policy       | Projection commits…                                             |
+| ------------ | --------------------------------------------------------------- |
+| Every change | on every document update                                          |
+| On blur      | when a field blur posts `POST …/signal {kind:"blur"}` (default)  |
+| Idle (30 s)  | after 30 s without edits                                          |
+| Explicit     | only when the Save button posts `POST …/flush`                   |
 
-The "unsaved projection changes" indicator polls
+The projection half of the header status badge polls
 `GET /yorm/docs/Patient/p-demo/projection-state`.
 
 ## Roles — the policy lens (role-security POC)

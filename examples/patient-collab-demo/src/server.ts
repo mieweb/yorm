@@ -127,6 +127,8 @@ const poc = createPocServer({
     // canonical one — see src/rolePolicies.ts. No `?role=` (or physician)
     // means full canonical access.
     rolePolicies: demoRolePolicies,
+    // Must match the client store's initial `policy` (the picker shows it).
+    defaultPolicy: { kind: "on-blur" },
   },
 });
 

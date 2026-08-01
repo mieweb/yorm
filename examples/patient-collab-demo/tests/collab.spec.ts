@@ -1,18 +1,21 @@
 /**
  * PLAN.md 6d — two browser contexts edit the same Patient: both UIs converge
- * over Yjs and the SQLite projection rows panel shows both values (default
- * `every-change` policy).
+ * over Yjs and the SQLite projection rows panel shows both values (under the
+ * `every-change` policy, which this spec selects — the demo defaults to
+ * `on-blur`).
  */
 import { expect, test } from "@playwright/test";
 
 import { t } from "../src/client/i18n";
-import { fieldInput, openEditor, projectionPanel, runId } from "./utils";
+import { fieldInput, openEditor, projectionPanel, runId, selectPolicy } from "./utils";
 
 test("two browsers converge and projection rows update live", async ({ browser }) => {
   const pageA = await openEditor(browser);
   const pageB = await openEditor(browser);
   const family = `Chalmers-${runId}`;
   const phone = `(03) 5555 ${runId}`;
+
+  await selectPolicy(pageA, t("policy.every-change"));
 
   // A edits the family name; B converges.
   await fieldInput(pageA, t("form.family")).fill(family);

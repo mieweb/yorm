@@ -15,12 +15,16 @@ import {
   propose,
   reviewPanel,
   runId,
+  selectPolicy,
 } from "./utils";
 
 test("proposer suggests, editor accepts: rows update only on accept", async ({ browser }) => {
   const editor = await openEditor(browser);
   const proposer = await openEditor(browser, "/?mode=proposer");
   const family = `Suggested-${runId}`;
+
+  // Project on every change so the row assertions need no blur trigger.
+  await selectPolicy(editor, t("policy.every-change"));
 
   const proposalId = await propose(proposer, t("form.family"), family);
 

@@ -1,9 +1,10 @@
 /**
- * UI shell (PLAN.md 6c): header with presence + connection status + the
- * dense/eSheet view toggle, the accumulating proposals bar on top of the
- * editor pane, the policy bar + Patient editor on the left, the live SQLite
- * projection panel on the right, and a polite live region announcing
- * presence and row updates to assistive technologies.
+ * UI shell (PLAN.md 6c): header with presence, the dense/eSheet view toggle,
+ * the role/mode/autosave-policy controls and a single combined connection +
+ * projection status badge; below it a "Sample Application" window frame
+ * holding the suggestions bar and the Patient editor, the sample server's
+ * live SQLite projection panel on the right, and a polite live region
+ * announcing presence and row updates to assistive technologies.
  */
 import { Badge } from "@mieweb/ui";
 
@@ -38,8 +39,12 @@ const REPO_URL = "https://github.com/mieweb/yorm";
 
 export function App(): React.JSX.Element {
   const status = useCollabStore((state) => state.status);
+  const pending = useCollabStore((state) => state.pendingProjection);
   const view = useCollabStore((state) => state.view);
   const announcement = useCollabStore((state) => state.announcement);
+  // One badge for the whole pipeline: a healthy socket with unsaved
+  // projection changes is a warning, not a success.
+  const statusVariant = status === "connected" && pending ? "warning" : STATUS_VARIANT[status];
 
   return (
     <div className="app-shell">
@@ -61,16 +66,29 @@ export function App(): React.JSX.Element {
           <ViewToggle />
           <RoleSwitcher />
           <ModeSwitcher />
-          <Badge variant={STATUS_VARIANT[status]} aria-label={t("connection.label")}>
-            {STATUS_LABEL[status]}
+          <PolicyBar />
+          <Badge variant={statusVariant} aria-label={t("status.label")} aria-live="polite">
+            {t("status.combined", {
+              connection: STATUS_LABEL[status],
+              projection: pending ? t("policy.pending") : t("policy.saved"),
+            })}
           </Badge>
         </div>
       </header>
       <main className="app-main">
-        <section className="editor-pane" aria-label={t("form.title")}>
-          <ReviewPanel />
-          <PolicyBar />
-          {view === "dense" ? <PatientEditor /> : <PatientForm />}
+        <section className="sample-app" aria-label={t("app.sample")}>
+          <div className="sample-app-chrome">
+            <span className="sample-app-dots" aria-hidden="true">
+              <span className="sample-app-dot" />
+              <span className="sample-app-dot" />
+              <span className="sample-app-dot" />
+            </span>
+            <h2 className="sample-app-title">{t("app.sample")}</h2>
+          </div>
+          <div className="sample-app-body">
+            <ReviewPanel />
+            {view === "dense" ? <PatientEditor /> : <PatientForm />}
+          </div>
         </section>
         <div className="projection-pane">
           <ProjectionPanel />

@@ -46,9 +46,9 @@ export function PatientEditor(): React.JSX.Element | null {
 
   return (
     <div className="patient-editor">
-      <p className="patient-editor-hint">
-        {mode === "proposer" ? t("form.proposerHint") : t("form.subtitle")}
-      </p>
+      {mode === "proposer" && (
+        <p className="patient-editor-hint">{t("form.proposerHint")}</p>
+      )}
       <p className="patient-editor-id">
         <span className="patient-editor-id-label">{t("editor.resourceId")}</span>
         <code>{patient.id ?? ""}</code>

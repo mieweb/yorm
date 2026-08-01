@@ -28,7 +28,7 @@ function fieldLabelFor(patient: Patient | null, proposal: ChangeIntent): string 
   return (patient && denseLabelForPath(patient, proposal.path)) ?? JSON.stringify(proposal.path);
 }
 
-export function ReviewPanel(): React.JSX.Element {
+export function ReviewPanel(): React.JSX.Element | null {
   const mode = useCollabStore((state) => state.mode);
   const patient = useCollabStore((state) => state.patient);
   const proposals = useCollabStore((state) => state.proposals);
@@ -46,6 +46,12 @@ export function ReviewPanel(): React.JSX.Element {
   // Open first (oldest → newest), then resolved (newest resolution first).
   const resolved = proposals.filter((proposal) => proposal.status !== "proposed").reverse();
   const listed = showResolved ? [...open, ...resolved] : open;
+
+  // Nothing suggested yet: the bar would only add an empty row above the
+  // editor. Resolved intents keep it mounted so the audit trail stays reachable.
+  if (proposals.length === 0) {
+    return null;
+  }
 
   return (
     <section className="review-panel" aria-label={t("review.title")}>

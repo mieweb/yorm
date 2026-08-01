@@ -45,5 +45,5 @@ test("on-blur policy projects when the field blurs", async ({ browser }) => {
   await expect(pageA.getByText(t("policy.saved"))).toBeVisible();
 
   // Restore the default policy for anyone running specs out of order.
-  await selectPolicy(pageA, t("policy.every-change"));
+  await selectPolicy(pageA, t("policy.on-blur"));
 });

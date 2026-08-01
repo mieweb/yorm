@@ -1,17 +1,11 @@
-/* Autosave policy controls — select, optional Save button, pending badge. */
+/* Autosave policy control in the header — select plus optional Save button. */
 
 .policy-bar {
   display: flex;
   align-items: flex-end;
-  gap: 0.75rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--mieweb-border);
+  gap: 0.5rem;
 }
 
 .policy-picker {
-  min-width: 14rem;
-}
-
-.policy-pending {
-  margin-left: auto;
+  min-width: 11rem;
 }

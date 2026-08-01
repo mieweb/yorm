@@ -114,7 +114,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   status: "connecting",
   patient: null,
   peers: [],
-  policy: "every-change",
+  policy: "on-blur",
   pendingProjection: false,
   rows: null,
   sqlCommits: [],

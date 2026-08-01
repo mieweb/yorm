@@ -24,12 +24,16 @@ import {
   proposalRow,
   propose,
   runId,
+  selectPolicy,
 } from "./utils";
 
 test("eSheet adornment: inline accept applies the suggestion", async ({ browser }) => {
   const editor = await openEsheetEditor(browser);
   const proposer = await openEditor(browser, "/?mode=proposer");
   const family = `Esheet-${runId}`;
+
+  // Project on every change so the row assertions need no blur trigger.
+  await selectPolicy(editor, t("policy.every-change"));
 
   const proposalId = await propose(proposer, t("form.family"), family);
 
@@ -82,6 +86,8 @@ test("YAML config: label edit re-renders bound; invalid YAML shows an error", as
 }) => {
   const editor = await openEsheetEditor(browser);
   const other = await openEditor(browser); // dense view
+
+  await selectPolicy(editor, t("policy.every-change"));
 
   // Rename the family field's label through the YAML tab.
   await editor.getByText(t("config.title")).click();

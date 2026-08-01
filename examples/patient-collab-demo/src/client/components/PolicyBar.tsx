@@ -1,9 +1,9 @@
 /**
- * Autosave policy controls (PLAN.md 6c / Decision #10): a select that sets
- * the session's projection trigger policy, a Save button under `explicit`,
- * and the "unsaved projection changes" indicator driven by projection-state.
+ * Autosave policy control (PLAN.md 6c / Decision #10): a header select that
+ * sets the session's projection trigger policy, plus a Save button under
+ * `explicit`. The resulting projection state shows in the app status badge.
  */
-import { Badge, Button, Select } from "@mieweb/ui";
+import { Button, Select } from "@mieweb/ui";
 
 import type { PolicyKind } from "../api";
 import { t } from "../i18n";
@@ -19,7 +19,6 @@ const POLICY_OPTIONS: Array<{ value: PolicyKind; label: string }> = [
 
 export function PolicyBar(): React.JSX.Element {
   const policy = useCollabStore((state) => state.policy);
-  const pending = useCollabStore((state) => state.pendingProjection);
   const selectPolicy = useCollabStore((state) => state.selectPolicy);
   const save = useCollabStore((state) => state.save);
 
@@ -40,13 +39,6 @@ export function PolicyBar(): React.JSX.Element {
           {t("policy.save")}
         </Button>
       )}
-      <Badge
-        className="policy-pending"
-        variant={pending ? "warning" : "success"}
-        aria-live="polite"
-      >
-        {pending ? t("policy.pending") : t("policy.saved")}
-      </Badge>
     </div>
   );
 }
