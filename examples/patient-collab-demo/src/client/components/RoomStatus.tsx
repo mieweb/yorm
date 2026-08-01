@@ -59,6 +59,7 @@ export function RoomStatus(): React.JSX.Element {
         alone: t("collab.alone"),
         logTitle: (count) => t("collab.logTitle", { count }),
         close: t("collab.close"),
+        wrap: t("collab.wrap"),
         empty: t("collab.empty"),
         roomTerm: t("collab.room"),
         urlTerm: t("collab.socket"),

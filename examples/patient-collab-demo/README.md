@@ -160,6 +160,11 @@ opens a popup with:
   suggestions proposed/accepted/rejected, and every SQL projection commit
   (statement count + document version).
 
+Long values (socket URL, log details) are clipped to one line so the panel
+stays narrow. Hover any of them for the full text in a tooltip, or press the
+**Wrap long values** button next to the close button to unclip every value at
+once.
+
 The Yjs-derived half of that log comes from the hook; the demo-specific
 entries are appended by the store (`events` in
 [src/client/store.ts](src/client/store.ts)) and merged in `RoomStatus`.
@@ -277,9 +282,10 @@ the packages' own docs.
 `@mieweb/ui` also comes from a git submodule — [vendor/ui](../../vendor/ui),
 branch `feat/collab-status` ([mieweb/ui#350](https://github.com/mieweb/ui/pull/350))
 — because `CollabStatus` / `useYjsCollabStatus` are not in a published release
-yet. This demo additionally extends the component with the `compact` trigger
-and the occupants section it needs; those edits live **inside the submodule**
-so they can be proposed back to that PR.
+yet. This demo additionally extends the component with the `compact` trigger,
+the `attention` seam, the occupants section and the wrap toggle it needs;
+those edits live **inside the submodule** so they can be proposed back to that
+PR.
 
 ```sh
 git submodule update --init --recursive

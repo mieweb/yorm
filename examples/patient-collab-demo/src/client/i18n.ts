@@ -16,6 +16,7 @@ const en = {
   "collab.alone": "You are the only window in this room",
   "collab.logTitle": "Room activity ({count})",
   "collab.close": "Close room status",
+  "collab.wrap": "Wrap long values",
   "collab.empty": "Nothing has happened in this room yet.",
   "collab.room": "Document",
   "collab.socket": "Socket",
