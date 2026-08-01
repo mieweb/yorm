@@ -8,7 +8,9 @@ import { App } from "./components/App";
 import { t } from "./i18n";
 import { startCollab } from "./store";
 
-document.title = t("app.title");
+document.title = new URLSearchParams(location.search).get("pane") === "server"
+  ? `${t("server.window")} — ${t("app.title")}`
+  : t("app.title");
 startCollab();
 
 const container = document.getElementById("root");

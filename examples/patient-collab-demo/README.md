@@ -4,9 +4,10 @@
 without cloning; open the link in two windows to collaborate.
 
 A collaborative FHIR **Patient** editor: two browsers edit the same Patient
-live over Yjs, while a SQLite projection panel shows the relational `contact*`
-rows the YORM projection engine derives from the canonical document —
-committed according to a selectable autosave policy. A mode switcher turns a
+live over Yjs, while a dark **Server terminal** window shows the relational
+`contact*` rows the YORM projection engine derives from the canonical document
+into SQLite — committed according to a selectable autosave policy. A mode
+switcher turns a
 browser into a **proposer** whose edits become reviewable suggestions instead
 of direct writes, and a header view toggle switches between the demo's own
 **dense editor** (default) and the **eSheet**-rendered form.
@@ -44,9 +45,18 @@ What it demonstrates:
 - **UI shell** with `@mieweb/ui`: presence avatars, the autosave-policy
   dropdown, Save button (explicit mode), the **room status** dot + popup
   ([src/client/components/RoomStatus.tsx](src/client/components/RoomStatus.tsx)),
-  and the live SQLite rows panel (polled every 750 ms). The `@mieweb/ui`
+  and the **Server terminal** (below). The `@mieweb/ui`
   package is **built from source** out of the [vendor/ui](../../vendor/ui)
   submodule — see [@mieweb/ui from source](#miewebui-from-source).
+- **Server terminal** ([src/client/components/ServerTerminal.tsx](src/client/components/ServerTerminal.tsx)):
+  the page is deliberately staged as two windows. The light **Sample
+  Application** window is the product a user would see; the dark **Server
+  terminal** window is *not part of the application* — it is a debug view of
+  the sample server's SQLite database (polled every 750 ms), the rows the
+  projection engine writes from the shared document. A **Pop out** button
+  opens it as its own browser window (`?pane=server`) so the main screen shows
+  only the application — the popped-out window is a pure HTTP observer that
+  never joins the Yjs room, so it adds no presence ghost.
 - **Playwright e2e** ([tests/](tests/)): convergence across two browser
   contexts, policy semantics (explicit → rows only after Save; on-blur →
   rows after blur), unmapped-field convergence, inline/mass proposal review,
@@ -55,7 +65,7 @@ What it demonstrates:
 - **Suggestion mode** ([src/client/components/ReviewPanel.tsx](src/client/components/ReviewPanel.tsx)):
   an editor/proposer mode switcher, inline suggestion adornments on the dense
   editor, a top accumulating proposals bar with mass actions, and the
-  `yorm_proposal` tracking table in the rows panel — see
+  `yorm_proposal` tracking table in the server terminal — see
   [Write modes & proposed changes](#write-modes--proposed-changes).
 
 ## One-command startup
@@ -98,9 +108,9 @@ graph LR
   Scheduler --> Tracking["yorm.proposals@1 tracking mapping"]
   Mapping --> Sqlite[("SQLite contact* tables")]
   Tracking --> ProposalTable[("yorm_proposal table")]
-  Sqlite -->|"GET /api/rows (poll 750 ms)"| PanelA["Rows panel A"]
+  Sqlite -->|"GET /api/rows (poll 750 ms)"| PanelA["Server terminal A"]
   ProposalTable -->|"GET /api/rows"| PanelA
-  Sqlite -->|"GET /api/rows"| PanelB["Rows panel B"]
+  Sqlite -->|"GET /api/rows"| PanelB["Server terminal B"]
 
   classDef doc fill:#e0e7ff,stroke:#4338ca;
   classDef store fill:#dcfce7,stroke:#15803d;
@@ -240,7 +250,7 @@ sequentially; conflicted accepts stay listed with their inline conflict state.
 
 Because the document codec materializes only the canonical subtree, the
 `contact*` rows never see an unaccepted change — while the `yorm_proposal`
-tracking table (also in the rows panel) shows every intent and its status
+tracking table (also in the server terminal) shows every intent and its status
 live: pending → a `yorm_proposal` row appears but contact rows are unchanged;
 accept → contact rows update and the row flips to `accepted`; reject → only
 the status changes.

@@ -168,7 +168,6 @@ export function ProjectionPanel(): React.JSX.Element {
 
   return (
     <section className="projection-panel" aria-label={t("rows.title")}>
-      <h2 className="projection-title">{t("rows.title")}</h2>
       <p className="projection-subtitle">{t("rows.subtitle")}</p>
       {/* The app shell's live region already announces row updates. */}
       <div

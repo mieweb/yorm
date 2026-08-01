@@ -1,32 +1,64 @@
 /**
- * UI shell (PLAN.md 6c): header with presence, the dense/eSheet view toggle,
- * the role/mode/autosave-policy controls and the room-status dot; below it a
- * "Sample Application" window frame holding the suggestions bar and the
- * Patient editor, the sample server's live SQLite projection panel on the
- * right, and a polite live region announcing presence and row updates to
- * assistive technologies.
+ * UI shell: header with presence, the dense/eSheet view toggle, the
+ * role/mode/autosave-policy controls and the room-status dot; below it two
+ * faux desktop windows — the "Sample Application" (suggestions bar + Patient
+ * editor) and the "Sample Server" debug terminal (live SQLite projection).
+ * The terminal is deliberately a separate window: `?pane=server` renders it
+ * alone, and the pop-out button opens exactly that in its own browser window
+ * so the main screen is just the application.
  */
+import React from "react";
+
 import { t } from "../i18n";
 import { useCollabStore } from "../store";
 import { PatientEditor } from "./PatientEditor";
 import { PatientForm } from "./PatientForm";
-import { PolicyBar } from "./PolicyBar";
 import { PresenceBar } from "./PresenceBar";
-import { ProjectionPanel } from "./ProjectionPanel";
 import { ReviewPanel } from "./ReviewPanel";
 import { ModeSwitcher } from "./ModeSwitcher";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { RoomStatus } from "./RoomStatus";
-import { UnmappedExtras } from "./UnmappedExtras";
+import { PolicyBar } from "./PolicyBar";
+import { ServerTerminal } from "./ServerTerminal";
 import { ViewToggle } from "./ViewToggle";
+import { WindowFrame } from "./WindowFrame";
 import "./app-shell.scss";
 
 const REPO_URL = "https://github.com/mieweb/yorm";
 const DOCS_URL = `${REPO_URL}/tree/main/examples/patient-collab-demo#readme`;
 
+/** `?pane=server` — this page is only the server debug terminal. */
+const SERVER_PANE = new URLSearchParams(location.search).get("pane") === "server";
+
 export function App(): React.JSX.Element {
   const view = useCollabStore((state) => state.view);
   const announcement = useCollabStore((state) => state.announcement);
+  const [serverWindow, setServerWindow] = React.useState<Window | null>(null);
+
+  // Closing the popped-out terminal by hand must bring the pane back.
+  React.useEffect(() => {
+    if (!serverWindow) return;
+    const timer = setInterval(() => {
+      if (serverWindow.closed) setServerWindow(null);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [serverWindow]);
+
+  const popOutServer = (): void => {
+    const win = window.open("?pane=server", "yorm-server-terminal", "width=880,height=1000");
+    if (win) setServerWindow(win);
+  };
+
+  if (SERVER_PANE) {
+    return (
+      <div className="app-shell app-shell--server-pane">
+        <ServerTerminal />
+        <div className="live-announcer" role="status" aria-live="polite">
+          {announcement}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
@@ -60,25 +92,25 @@ export function App(): React.JSX.Element {
           <RoomStatus />
         </div>
       </header>
-      <main className="app-main">
-        <section className="sample-app" aria-label={t("app.sample")}>
-          <div className="sample-app-chrome">
-            <span className="sample-app-dots" aria-hidden="true">
-              <span className="sample-app-dot" />
-              <span className="sample-app-dot" />
-              <span className="sample-app-dot" />
-            </span>
-            <h2 className="sample-app-title">{t("app.sample")}</h2>
-          </div>
-          <div className="sample-app-body">
-            <ReviewPanel />
-            {view === "dense" ? <PatientEditor /> : <PatientForm />}
-          </div>
-        </section>
-        <div className="projection-pane">
-          <ProjectionPanel />
-          <UnmappedExtras />
-        </div>
+      <main className={serverWindow ? "app-main app-main--solo" : "app-main"}>
+        <WindowFrame title={t("app.sample")} label={t("app.sample")}>
+          <ReviewPanel />
+          {view === "dense" ? <PatientEditor /> : <PatientForm />}
+        </WindowFrame>
+        {serverWindow ? (
+          <p className="server-popped-note">
+            {t("server.poppedOut")}{" "}
+            <button
+              type="button"
+              className="server-popped-focus"
+              onClick={() => serverWindow.focus()}
+            >
+              {t("server.focus")}
+            </button>
+          </p>
+        ) : (
+          <ServerTerminal onPopOut={popOutServer} />
+        )}
       </main>
       <div className="live-announcer" role="status" aria-live="polite">
         {announcement}

@@ -1,0 +1,54 @@
+/* Faux desktop window: chrome dots, a title bar, and a body. The Sample
+   Application and the Sample Server terminal share this frame so each reads
+   as its own program. */
+
+.app-window {
+  border: 1px solid var(--mieweb-border);
+  border-radius: var(--mieweb-radius-lg);
+  background: var(--mieweb-card);
+  box-shadow: var(--mieweb-shadow-card);
+  overflow: hidden;
+}
+
+.app-window-chrome {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--mieweb-border);
+  background: var(--mieweb-muted, rgb(0 0 0 / 0.04));
+}
+
+.app-window-dots {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.app-window-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--mieweb-border);
+}
+
+.app-window-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mieweb-muted-foreground);
+}
+
+.app-window-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.app-window-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+}

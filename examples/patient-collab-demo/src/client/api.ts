@@ -99,6 +99,15 @@ export async function fetchRows(): Promise<RowsSnapshot> {
   return (await response.json()) as RowsSnapshot;
 }
 
+/** The materialized document, for observers that never join the Yjs room. */
+export async function fetchDocument(): Promise<{ object: unknown; version: number }> {
+  const response = await fetch(DOC_PATH);
+  if (!response.ok) {
+    throw new Error(`${DOC_PATH} failed: ${response.status}`);
+  }
+  return (await response.json()) as { object: unknown; version: number };
+}
+
 /** The projection commits applied since `since`, plus the new high-water mark. */
 export async function fetchSql(since: number): Promise<SqlLog> {
   const response = await fetch(`/api/sql?since=${since}`);

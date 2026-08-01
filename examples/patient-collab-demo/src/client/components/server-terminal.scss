@@ -1,0 +1,74 @@
+/* The Sample Server pane dressed as a dark terminal — visibly a different
+   program from the sample application. The body re-skins the mieweb tokens
+   locally so the projection panel and extras restyle themselves; the
+   --color-* aliases are re-pointed too because the ui kit resolves them at
+   :root, outside this scope. */
+
+.server-terminal {
+  border-color: #30363d;
+
+  .app-window-chrome {
+    border-color: #30363d;
+    background: #161b22;
+  }
+
+  .app-window-dot {
+    background: #30363d;
+  }
+
+  .app-window-title {
+    color: #8b949e;
+  }
+
+  .app-window-body {
+    --mieweb-card: #0d1117;
+    --mieweb-border: #30363d;
+    --mieweb-foreground: #c9d1d9;
+    --mieweb-muted: rgb(255 255 255 / 0.06);
+    --mieweb-muted-foreground: #8b949e;
+    --mieweb-primary-600: #2ea043;
+    --mieweb-primary-700: #3fb950;
+    --mieweb-shadow-card: none;
+    --color-border: #30363d;
+    --color-muted: rgb(255 255 255 / 0.06);
+    --color-muted-foreground: #8b949e;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #0d1117;
+    color: var(--mieweb-foreground);
+    font-family: var(--mieweb-font-mono);
+  }
+
+  /* Inside the terminal the panels are content, not cards of their own. */
+  .projection-panel,
+  .unmapped-extras {
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+.server-terminal-note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #8b949e;
+}
+
+.server-terminal-popout {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid #30363d;
+  border-radius: var(--mieweb-radius-sm, 0.25rem);
+  background: transparent;
+  font-size: 0.7rem;
+  font-family: inherit;
+  color: #8b949e;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: #c9d1d9;
+    border-color: #8b949e;
+  }
+}

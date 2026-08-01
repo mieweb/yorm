@@ -25,6 +25,7 @@ import {
   DOC_TYPE,
   acceptProposal,
   acceptProposalAnyway,
+  fetchDocument,
   fetchProjectionState,
   fetchProposals,
   fetchRows,
@@ -473,6 +474,9 @@ export function startCollab(): void {
   // `?view=esheet` (the dense editor is the default). The policy-lens role
   // comes from `?role=` and is fixed for the page's lifetime.
   const params = new URLSearchParams(location.search);
+  // `?pane=server` is the popped-out server terminal: a pure observer that
+  // polls the HTTP surface and never joins the Yjs room (no presence ghost).
+  const observer = params.get("pane") === "server";
   const initialMode: DemoMode = params.get("mode") === "proposer" ? "proposer" : "editor";
   setApiMode(initialMode);
   useCollabStore.setState({
@@ -483,11 +487,12 @@ export function startCollab(): void {
     selfColor: PRESENCE_COLORS[doc.clientID % PRESENCE_COLORS.length]!,
   });
 
-  doc.on("update", () => {
-    useCollabStore.setState({ patient: root.toJSON() as Patient });
-  });
-
-  connectProvider(initialMode);
+  if (!observer) {
+    doc.on("update", () => {
+      useCollabStore.setState({ patient: root.toJSON() as Patient });
+    });
+    connectProvider(initialMode);
+  }
 
   const poll = async (): Promise<void> => {
     try {
@@ -499,6 +504,10 @@ export function startCollab(): void {
       ]);
       applyProjection(rows, projection, sql);
       applyProposals(proposals);
+      if (observer) {
+        const { object } = await fetchDocument();
+        useCollabStore.setState({ patient: object as Patient });
+      }
     } catch {
       // server briefly unavailable — retry on the next tick
     }
