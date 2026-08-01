@@ -41,6 +41,8 @@ export interface PocServerOptions {
   mappings?: AnyMapping[];
   /** Extra plugin options (e.g. `onAuthorizeWrite`); the WebSocket upgrader is always wired. */
   honoOptions?: Omit<HonoYormOptions, "upgradeWebSocket">;
+  /** Forwarded to {@link createSqliteAdapter} — observes every executed statement. */
+  onStatement?: (sql: string) => void;
 }
 
 /**
@@ -49,7 +51,10 @@ export interface PocServerOptions {
  * tables, and mounts `createHonoYorm` at `/yorm` with y-protocols WebSockets.
  */
 export function createPocServer(options: PocServerOptions = {}): PocServer {
-  const adapter = createSqliteAdapter(options.file !== undefined ? { file: options.file } : {});
+  const adapter = createSqliteAdapter({
+    ...(options.file !== undefined ? { file: options.file } : {}),
+    ...(options.onStatement ? { onStatement: options.onStatement } : {}),
+  });
   adapter.migrate();
   for (const ddl of CONTACTS_DDL) {
     adapter.db.run(sql.raw(ddl));

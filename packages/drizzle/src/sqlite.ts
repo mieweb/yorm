@@ -52,6 +52,11 @@ export interface SqliteAdapterOptions {
   file?: string;
   /** Forwarded to {@link drizzleProjectionStore}. */
   projections?: DrizzleProjectionStoreOptions;
+  /**
+   * Called with every statement the driver executes, parameters already
+   * expanded. Intended for demos and debugging — it fires on every read too.
+   */
+  onStatement?: (sql: string) => void;
 }
 
 export interface SqliteAdapter {
@@ -65,7 +70,11 @@ export interface SqliteAdapter {
 
 /** Creates a ready-to-use SQLite adapter (call `migrate()` before first use). */
 export function createSqliteAdapter(options?: SqliteAdapterOptions): SqliteAdapter {
-  const sqlite = new Database(options?.file ?? ":memory:");
+  const onStatement = options?.onStatement;
+  const sqlite = new Database(
+    options?.file ?? ":memory:",
+    onStatement ? { verbose: (message?: unknown) => onStatement(String(message)) } : {},
+  );
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
   const db = drizzle(sqlite);

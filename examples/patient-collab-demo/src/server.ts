@@ -18,6 +18,8 @@
  *   open/resolved proposals are visible as SQL rows,
  * - `GET /api/rows` — the live contact-table + `yorm_proposal` rows for the
  *   projection panel,
+ * - `GET /api/sql?since=<seq>` — the SQL the projection engine has executed
+ *   since that sequence number, so the panel can show the actual statements,
  * - static serving of the built client (`dist/`) in prod mode.
  *
  * In dev the Vite server (port 5173) proxies `/yorm` + `/api` here.
@@ -49,8 +51,45 @@ function demoMode(c: Context): string {
   return c.req.header("x-demo-mode") ?? c.req.query("mode") ?? "editor";
 }
 
+/** Tables shown in the live rows panel, with deterministic ordering. */
+const ROWS_TABLES = [...CONTACT_TABLES, "yorm_proposal"] as const;
+const ORDER_BY: Record<(typeof ROWS_TABLES)[number], string> = {
+  contact: "contact_id",
+  contact_multivalue: "contact_id, element_id",
+  contact_multivalue_entry: "contact_id, element_id, entry_key",
+  contact_raw_property: "contact_id, property",
+  yorm_proposal: "created_at, proposal_id",
+};
+
+const PROJECTION_WRITE_VERBS = ["insert", "update", "delete"];
+/** Enough history for a client that missed a poll or two; the panel shows far fewer. */
+const SQL_LOG_LIMIT = 100;
+
+let sqlSeq = 0;
+const sqlLog: { seq: number; sql: string }[] = [];
+
+/**
+ * Records the statements that wrote the projection tables. The driver reports
+ * every statement it runs — including this panel's own SELECTs and the
+ * `yorm_*` bookkeeping — so only row-changing writes are kept.
+ */
+function recordStatement(sql: string): void {
+  const text = sql.trim();
+  if (!PROJECTION_WRITE_VERBS.includes(text.slice(0, 6).toLowerCase())) {
+    return;
+  }
+  if (!ROWS_TABLES.some((table) => text.includes(table))) {
+    return;
+  }
+  sqlLog.push({ seq: ++sqlSeq, sql: text });
+  if (sqlLog.length > SQL_LOG_LIMIT) {
+    sqlLog.splice(0, sqlLog.length - SQL_LOG_LIMIT);
+  }
+}
+
 const poc = createPocServer({
   mappings: [proposalTrackingMapping("Patient")],
+  onStatement: recordStatement,
   honoOptions: {
     // Proposers may write the proposals subtree but never canonical state;
     // editors may write both.
@@ -94,16 +133,6 @@ if (!template) {
 }
 await seedContacts(poc.yorm, [{ ...template, id: PATIENT_ID }]);
 
-/** Tables shown in the live rows panel, with deterministic ordering. */
-const ROWS_TABLES = [...CONTACT_TABLES, "yorm_proposal"] as const;
-const ORDER_BY: Record<(typeof ROWS_TABLES)[number], string> = {
-  contact: "contact_id",
-  contact_multivalue: "contact_id, element_id",
-  contact_multivalue_entry: "contact_id, element_id, entry_key",
-  contact_raw_property: "contact_id, property",
-  yorm_proposal: "created_at, proposal_id",
-};
-
 poc.app.get("/api/rows", (c) => {
   const rows: Record<string, unknown[]> = {};
   for (const table of ROWS_TABLES) {
@@ -111,6 +140,12 @@ poc.app.get("/api/rows", (c) => {
     rows[table] = sqlite.prepare(`SELECT * FROM ${table} ORDER BY ${ORDER_BY[table]}`).all();
   }
   return c.json(rows);
+});
+
+poc.app.get("/api/sql", (c) => {
+  const since = Number(c.req.query("since") ?? 0);
+  const statements = Number.isFinite(since) ? sqlLog.filter((entry) => entry.seq > since) : sqlLog;
+  return c.json({ seq: sqlSeq, statements: statements.map((entry) => entry.sql) });
 });
 
 // Prod mode: serve the built client. `serveStatic` roots are cwd-relative,
@@ -124,5 +159,6 @@ const server = serve({ fetch: poc.app.fetch, port }, (info) => {
   console.log(`  doc   /yorm/docs/Patient/${PATIENT_ID}`);
   console.log(`  ws    /yorm/ws/Patient/${PATIENT_ID}`);
   console.log(`  rows  /api/rows`);
+  console.log(`  sql   /api/sql`);
 });
 poc.injectWebSocket(server);
