@@ -46,6 +46,34 @@ The toast said *that* rows changed; this makes it say *what ran*.
 - [x] **`projection-panel.scss`** — toast moved into the panel flow. Floating at
       the top-right it covered the very rows it was pointing at.
 
+## Phase 4 — SQL attributed to the commit, not scraped — committed `a801fa8`
+
+Phase 3 read better-sqlite3's `verbose` hook: a global stream of *every*
+statement the driver ran, reads included, filtered back down by verb and table
+name. It could not say which document change set a statement belonged to.
+
+`applyPlan` is already the per-commit boundary — one plan, one transaction, one
+document version — so the SQL is captured there instead.
+
+- [x] **`packages/drizzle/src/projection-store/index.ts`** — render each plan
+      operation with the public `SQLiteSyncDialect.sqlToQuery` before running it;
+      hand the set to `options.onCommit` as a `ProjectionCommit`
+      (`mapping`, `documentId`, `documentType`, `documentVersion`, `origin`,
+      `statements`). Emitted *after* the transaction, so a rollback reports
+      nothing.
+- [x] **`packages/drizzle/src/sqlite.ts`** — `onStatement` / the `verbose` hook
+      deleted; the adapter already forwards `options.projections`
+- [x] **`examples/patient-collab-demo/src/server.ts`** — `/api/sql` returns
+      commits, not a flat statement stream; no verb/table-prefix guessing
+- [x] **client** — buffers commits; the toast titles itself
+      `SQL rows updated · document v{version}`
+- [x] **tests** — one commit per plan carrying that plan's statements; nothing
+      emitted when the transaction throws
+
+Trade-off: `sqlToQuery` returns the parameterized SQL plus its bindings, which
+is what the engine actually sends. The demo inlines the parameters for display
+only (`displaySql`), never for execution.
+
 ## Verification
 
 - [x] `pnpm --filter patient-collab-demo typecheck` passes with no new errors
