@@ -42,8 +42,8 @@ What it demonstrates:
   definition itself is editable at runtime — see
   [Form config](#form-config-esheet-view).
 - **6c — UI shell** with `@mieweb/ui`: presence avatars, the autosave-policy
-  dropdown, Save button (explicit mode), a projection dot, the **room status**
-  dot + popup ([src/client/components/RoomStatus.tsx](src/client/components/RoomStatus.tsx)),
+  dropdown, Save button (explicit mode), the **room status** dot + popup
+  ([src/client/components/RoomStatus.tsx](src/client/components/RoomStatus.tsx)),
   and the live SQLite rows panel (polled every 750 ms). The `@mieweb/ui`
   package is **built from source** out of the [vendor/ui](../../vendor/ui)
   submodule — see [@mieweb/ui from source](#miewebui-from-source).
@@ -130,9 +130,14 @@ SQLite projection commits.
 | Idle (30 s)  | after 30 s without edits                                          |
 | Explicit     | only when the Save button posts `POST …/flush`                   |
 
-The projection dot next to the policy dropdown polls
-`GET /yorm/docs/Patient/p-demo/projection-state` (green = saved, amber =
-pending; the wording stays available to screen readers).
+The projection state (polled from
+`GET /yorm/docs/Patient/p-demo/projection-state`) is shown by the room-status
+dot below, which turns amber while the projection is behind the document.
+
+The scheduler is **per document, shared by every window** (a v1 simplification
+of `@yorm/yjs`), so the dropdown is not a local preference: the same poll reads
+back `policy` and moves the picker, which is why another window's pick — or a
+server restart — visibly changes yours.
 
 ## Room status
 
@@ -140,9 +145,14 @@ The header ends with a single **room status dot** — `@mieweb/ui`'s
 `CollabStatus` in `compact` mode, bound to the live `Y.Doc` + `y-websocket`
 provider by `useYjsCollabStatus`
 ([src/client/components/RoomStatus.tsx](src/client/components/RoomStatus.tsx)).
-The dot alone carries the connection state (its accessible name is
-“Room status — Connected — Ann is editing”); clicking it opens a popup with:
+The dot alone carries both halves of “is my work safe”: green when the room is
+synced and the projection has caught up, amber while connecting **or** while
+the projection is behind (`attention`, from the polled projection state). All
+of it reaches assistive tech through the trigger's accessible name — “Room
+status — Connected — Unsaved projection changes — Ann is editing”. Clicking it
+opens a popup with:
 
+- the attention line, if any;
 - the document, socket URL, client id and your own identity (name · role · mode);
 - **In the room (N)** — the occupants, each with their presence color;
 - **Room activity** — a merged, newest-first log of peers joining/leaving,

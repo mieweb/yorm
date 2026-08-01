@@ -50,7 +50,7 @@ Malformed bodies yield `400`; unexpected errors yield `500 { error }`.
 | GET    | `/docs/:type/:id`                  | —                                       | `{ object, version }`, `404` if never persisted |
 | PUT    | `/docs/:type/:id`                  | the document object                     | `{ version }` (semantic replace via codec)      |
 | PATCH  | `/docs/:type/:id`                  | `{ path, value? }` or an array of those | `{ version }` (omit `value` to remove)          |
-| GET    | `/docs/:type/:id/projection-state` | —                                       | `{ pending, version, lastError?, checkpoints }` |
+| GET    | `/docs/:type/:id/projection-state` | —                                       | `{ pending, version, policy, lastError?, checkpoints }` |
 | POST   | `/docs/:type/:id/flush`            | —                                       | `{ version, pending }` (projects now)           |
 | POST   | `/docs/:type/:id/signal`           | `{ kind: "blur" \| "flush" }`           | `{ version, pending }`                          |
 | POST   | `/docs/:type/:id/policy`           | a `ProjectionTriggerPolicy`             | `204`                                           |
@@ -87,7 +87,9 @@ Notes (v1 simplifications, by design):
 - **Policy is per document, not per HTTP session**: HTTP is stateless, and
   `@yorm/yjs` shares one scheduler per document, so a policy set via this
   route (or a WebSocket `?policy=` param) applies to everyone editing the
-  document. True per-session policies arrive with a later transport phase.
+  document. `projection-state.policy` reports the one in force, so a client
+  can show what actually governs the document instead of its own guess.
+  True per-session policies arrive with a later transport phase.
 - `projection-state.checkpoints` contains one entry per mapping registered
   for `:type`: `{ mappingName, mappingVersion, state }`, where `state` is the
   stored `ProjectionStateRecord` (or `null` if never projected).

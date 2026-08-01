@@ -62,13 +62,6 @@ body {
   gap: 1rem;
 }
 
-/* The room-status chip is about the room, not about this app's controls — a
-   rule keeps its dot from reading as a sibling of the projection dot. */
-.app-status [data-slot="collab-status"] {
-  padding-left: 1rem;
-  border-left: 1px solid #e2e8f0;
-}
-
 .app-main {
   flex: 1;
   display: grid;

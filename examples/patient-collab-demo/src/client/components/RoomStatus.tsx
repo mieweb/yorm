@@ -1,7 +1,11 @@
 /**
  * The header's room-status dot (@mieweb/ui `CollabStatus`, compact): a single
- * connection dot that opens a panel with the room identity, who is in the
- * room, and a rolling activity log.
+ * dot that opens a panel with the room identity, who is in the room, and a
+ * rolling activity log.
+ *
+ * One dot carries both halves of "is my work safe": the transport state and,
+ * through `attention`, whether the SQL projection is still behind the
+ * document (amber until the policy's trigger commits it).
  *
  * The log merges two sources: the Yjs transport events `useYjsCollabStatus`
  * records (sync, doc updates, peers joining/leaving) and the demo's own
@@ -22,6 +26,7 @@ export function RoomStatus(): React.JSX.Element {
   const events = useCollabStore((state) => state.events);
   const role = useCollabStore((state) => state.role);
   const mode = useCollabStore((state) => state.mode);
+  const pending = useCollabStore((state) => state.pendingProjection);
 
   const status = useYjsCollabStatus({
     doc: collabDoc,
@@ -44,6 +49,7 @@ export function RoomStatus(): React.JSX.Element {
       {...status}
       log={log}
       compact
+      attention={pending ? t("policy.pending") : null}
       labels={{
         live: t("connection.connected"),
         connecting: t("connection.connecting"),

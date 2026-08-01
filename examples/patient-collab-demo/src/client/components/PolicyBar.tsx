@@ -1,8 +1,8 @@
 /**
  * Autosave policy control (PLAN.md 6c / Decision #10): a header select that
  * sets the session's projection trigger policy, plus a Save button under
- * `explicit`. The dot beside it is the resulting projection state — amber
- * while the document has changes the projection has not written yet.
+ * `explicit`. The resulting projection state is shown by the room-status dot
+ * (see RoomStatus.tsx); here it only has to reach screen readers.
  */
 import { Button, Select } from "@mieweb/ui";
 
@@ -38,12 +38,10 @@ export function PolicyBar(): React.JSX.Element {
         />
       </div>
       <span
-        className="projection-dot"
-        data-state={pending ? "pending" : "saved"}
-        title={projectionLabel}
-        aria-hidden="true"
-      />
-      <span className="projection-state" role="status" aria-live="polite">
+        className="projection-state"
+        role="status"
+        aria-live="polite"
+      >
         {projectionLabel}
       </span>
       {policy === "explicit" && (

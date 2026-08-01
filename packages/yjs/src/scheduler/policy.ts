@@ -59,6 +59,11 @@ export class ProjectionScheduler {
     return this._lastError;
   }
 
+  /** The policy currently governing this document. */
+  get currentPolicy(): ProjectionTriggerPolicy {
+    return this.policy;
+  }
+
   /** Records that a persisted document change produced `documentVersion`. */
   notifyChange(documentVersion: number): void {
     if (this.disposed) {

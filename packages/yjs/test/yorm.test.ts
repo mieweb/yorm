@@ -103,7 +103,12 @@ describe("createYorm (end-to-end, no DB)", () => {
         scope: { contact_id: "c1" },
       },
     ]);
-    expect(session.projectionState()).toEqual({ pending: null, version: 1, lastError: undefined });
+    expect(session.projectionState()).toEqual({
+      pending: null,
+      version: 1,
+      policy: { kind: "every-change" },
+      lastError: undefined,
+    });
     session.close();
   });
 
@@ -190,7 +195,12 @@ describe("createYorm (end-to-end, no DB)", () => {
 
     await session.signal("flush");
     expect(projections.plans).toHaveLength(1);
-    expect(session.projectionState()).toEqual({ pending: null, version: 1, lastError: undefined });
+    expect(session.projectionState()).toEqual({
+      pending: null,
+      version: 1,
+      policy: { kind: "every-change" },
+      lastError: undefined,
+    });
     // …and the successful retry clears it.
     expect(await projections.listFailures()).toEqual([]);
     session.close();

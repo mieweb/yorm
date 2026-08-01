@@ -66,7 +66,7 @@ const session = await yorm.open("Contact", "c1");
 await session.write({ id: "c1", firstName: "Ada" }); // → rows projected
 session.setPolicy({ kind: "explicit" });
 session.doc.transact(() => session.doc.getMap("resource").set("firstName", "Augusta"));
-session.projectionState(); // { pending: { from: 2, to: 2 }, version: 2 }
+session.projectionState(); // { pending: { from: 2, to: 2 }, version: 2, policy }
 await session.signal("flush"); // projects now
 session.close();
 ```

@@ -105,11 +105,20 @@ export async function fetchSql(since: number): Promise<SqlLog> {
   return (await response.json()) as SqlLog;
 }
 
-export async function fetchProjectionPending(): Promise<boolean> {
+export interface ProjectionState {
+  pending: boolean;
+  /** The document-wide policy in force — any window's pick changes it. */
+  policy: PolicyKind;
+}
+
+export async function fetchProjectionState(): Promise<ProjectionState> {
   const response = await fetch(`${DOC_PATH}/projection-state`);
   // `pending` is a version range `{ from, to }` or null when projected.
-  const state = (await response.json()) as { pending?: { from: number; to: number } | null };
-  return state.pending != null;
+  const state = (await response.json()) as {
+    pending?: { from: number; to: number } | null;
+    policy: { kind: PolicyKind };
+  };
+  return { pending: state.pending != null, policy: state.policy.kind };
 }
 
 // --- Proposals (PLAN.md M7c) ----------------------------------------------

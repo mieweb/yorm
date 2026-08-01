@@ -46,6 +46,8 @@ export interface DocumentSession {
   projectionState(): {
     pending: { from: number; to: number } | null;
     version: number;
+    /** The document-wide policy in force (any session's `setPolicy` wins). */
+    policy: ProjectionTriggerPolicy;
     lastError?: string;
   };
   /** Applies a remote update. Origin defaults to `"yjs"`. */
@@ -174,6 +176,7 @@ export function createYorm(opts: YormOptions): Yorm {
         projectionState: () => ({
           pending: channel.scheduler.pendingVersions(),
           version: channel.managed.version,
+          policy: channel.scheduler.currentPolicy,
           lastError: channel.scheduler.lastError,
         }),
         applyUpdate: (update, origin = "yjs", actor) =>

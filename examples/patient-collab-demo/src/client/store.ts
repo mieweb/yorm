@@ -25,7 +25,7 @@ import {
   DOC_TYPE,
   acceptProposal,
   acceptProposalAnyway,
-  fetchProjectionPending,
+  fetchProjectionState,
   fetchProposals,
   fetchRows,
   fetchSql,
@@ -41,6 +41,7 @@ import type {
   DemoMode,
   PolicyKind,
   ProjectionCommit,
+  ProjectionState,
   RowsSnapshot,
   SqlLog,
 } from "./api";
@@ -167,7 +168,12 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   selectPolicy(kind) {
     set({ policy: kind });
     logEvent("sync", t("event.policy", { policy: t(`policy.${kind}` as StringKey) }));
-    void postPolicy(kind).then(refreshProjection);
+    policyPosts += 1;
+    void postPolicy(kind)
+      .finally(() => {
+        policyPosts -= 1;
+      })
+      .then(refreshProjection);
   },
 
   save() {
@@ -320,15 +326,15 @@ async function refreshProposals(): Promise<void> {
   }
 }
 
-/** Re-polls rows + pending flag right after a policy/flush/blur action. */
+/** Re-polls rows + projection state right after a policy/flush/blur action. */
 async function refreshProjection(): Promise<void> {
   try {
-    const [rows, pending, sql] = await Promise.all([
+    const [rows, projection, sql] = await Promise.all([
       fetchRows(),
-      fetchProjectionPending(),
+      fetchProjectionState(),
       fetchSql(lastSqlSeq),
     ]);
-    applyProjection(rows, pending, sql);
+    applyProjection(rows, projection, sql);
   } catch {
     // transient — the poll loop retries
   }
@@ -336,6 +342,8 @@ async function refreshProjection(): Promise<void> {
 
 /** High-water mark of the commits already pulled from `/api/sql`. */
 let lastSqlSeq = 0;
+/** In-flight `POST /policy` count — polls must not revert an unacked pick. */
+let policyPosts = 0;
 /**
  * Rows and SQL are separate requests, so a commit can land between the two —
  * commits are held here until the poll that actually sees the new rows.
@@ -343,14 +351,17 @@ let lastSqlSeq = 0;
 let bufferedCommits: ProjectionCommit[] = [];
 const COMMIT_BUFFER_LIMIT = 20;
 
-function applyProjection(rows: RowsSnapshot, pending: boolean, sql: SqlLog): void {
+function applyProjection(rows: RowsSnapshot, projection: ProjectionState, sql: SqlLog): void {
   const state = useCollabStore.getState();
   const firstSnapshot = state.rows === null;
   const changed = JSON.stringify(rows) !== JSON.stringify(state.rows);
   lastSqlSeq = sql.seq;
   bufferedCommits = [...bufferedCommits, ...sql.commits].slice(-COMMIT_BUFFER_LIMIT);
+  // The policy is document-wide server state: another window's pick — or a
+  // server restart — must move this window's picker too.
+  const policy = policyPosts === 0 ? projection.policy : state.policy;
   if (!changed) {
-    useCollabStore.setState({ pendingProjection: pending });
+    useCollabStore.setState({ pendingProjection: projection.pending, policy });
     return;
   }
   // The seed runs before the first poll, so its SQL is history, not news.
@@ -366,7 +377,8 @@ function applyProjection(rows: RowsSnapshot, pending: boolean, sql: SqlLog): voi
     );
   }
   useCollabStore.setState({
-    pendingProjection: pending,
+    pendingProjection: projection.pending,
+    policy,
     rows,
     sqlCommits: commits,
     announcement: firstSnapshot ? "" : t("announce.rowsUpdated"),
@@ -479,13 +491,13 @@ export function startCollab(): void {
 
   const poll = async (): Promise<void> => {
     try {
-      const [rows, pending, proposals, sql] = await Promise.all([
+      const [rows, projection, proposals, sql] = await Promise.all([
         fetchRows(),
-        fetchProjectionPending(),
+        fetchProjectionState(),
         fetchProposals(),
         fetchSql(lastSqlSeq),
       ]);
-      applyProjection(rows, pending, sql);
+      applyProjection(rows, projection, sql);
       applyProposals(proposals);
     } catch {
       // server briefly unavailable — retry on the next tick
