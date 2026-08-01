@@ -343,6 +343,8 @@ async function refreshProjection(): Promise<void> {
 
 /** High-water mark of the commits already pulled from `/api/sql`. */
 let lastSqlSeq = 0;
+/** Highest commit seq already logged; -1 until pre-page history is skipped. */
+let lastLoggedSeq = -1;
 /** In-flight `POST /policy` count — polls must not revert an unacked pick. */
 let policyPosts = 0;
 /**
@@ -356,8 +358,27 @@ function applyProjection(rows: RowsSnapshot, projection: ProjectionState, sql: S
   const state = useCollabStore.getState();
   const firstSnapshot = state.rows === null;
   const changed = JSON.stringify(rows) !== JSON.stringify(state.rows);
-  lastSqlSeq = sql.seq;
-  bufferedCommits = [...bufferedCommits, ...sql.commits].slice(-COMMIT_BUFFER_LIMIT);
+  // Fetches can race (poll + post-action refresh), so news is decided per
+  // commit seq, not per batch. The first batch ever seen is pre-page history.
+  if (lastLoggedSeq === -1) {
+    lastLoggedSeq = sql.seq;
+  } else {
+    const fresh = sql.commits.filter((commit) => commit.seq > lastLoggedSeq);
+    if (fresh.length > 0) {
+      lastLoggedSeq = fresh[fresh.length - 1]!.seq;
+      bufferedCommits = [...bufferedCommits, ...fresh].slice(-COMMIT_BUFFER_LIMIT);
+      for (const commit of fresh) {
+        logEvent(
+          "sync",
+          t("event.commit", {
+            statements: String(commit.statements.length),
+            version: String(commit.documentVersion),
+          }),
+        );
+      }
+    }
+  }
+  lastSqlSeq = Math.max(lastSqlSeq, sql.seq);
   // The policy is document-wide server state: another window's pick — or a
   // server restart — must move this window's picker too.
   const policy = policyPosts === 0 ? projection.policy : state.policy;
@@ -365,18 +386,8 @@ function applyProjection(rows: RowsSnapshot, projection: ProjectionState, sql: S
     useCollabStore.setState({ pendingProjection: projection.pending, policy });
     return;
   }
-  // The seed runs before the first poll, so its SQL is history, not news.
   const commits = firstSnapshot ? [] : bufferedCommits;
   bufferedCommits = [];
-  for (const commit of commits) {
-    logEvent(
-      "sync",
-      t("event.commit", {
-        statements: String(commit.statements.length),
-        version: String(commit.documentVersion),
-      }),
-    );
-  }
   useCollabStore.setState({
     pendingProjection: projection.pending,
     policy,

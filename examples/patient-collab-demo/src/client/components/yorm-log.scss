@@ -1,0 +1,43 @@
+/* The YORM trigger log at the bottom of the server terminal. Inherits the
+   terminal's dark tokens and mono font from .server-terminal. */
+
+.yorm-log {
+  border-top: 1px solid #30363d;
+  padding-top: 0.5rem;
+}
+
+.yorm-log-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+}
+
+.yorm-log-empty {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8b949e;
+}
+
+.yorm-log-entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 9rem;
+  overflow-y: auto;
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.yorm-log-entry {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.yorm-log-time {
+  flex-shrink: 0;
+  color: #8b949e;
+  font-variant-numeric: tabular-nums;
+}

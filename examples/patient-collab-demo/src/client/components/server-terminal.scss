@@ -56,7 +56,7 @@
   color: #8b949e;
 }
 
-.server-terminal-popout {
+.server-terminal-action {
   padding: 0.1rem 0.45rem;
   border: 1px solid #30363d;
   border-radius: var(--mieweb-radius-sm, 0.25rem);
@@ -71,4 +71,15 @@
     color: #c9d1d9;
     border-color: #8b949e;
   }
+
+  &[aria-expanded="true"] {
+    color: #c9d1d9;
+    border-color: #8b949e;
+  }
+}
+
+.server-terminal-info {
+  font-style: italic;
+  font-weight: 700;
+  min-width: 1.4rem;
 }

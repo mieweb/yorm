@@ -56,7 +56,10 @@ What it demonstrates:
   projection engine writes from the shared document. A **Pop out** button
   opens it as its own browser window (`?pane=server`) so the main screen shows
   only the application — the popped-out window is a pure HTTP observer that
-  never joins the Yjs room, so it adds no presence ghost.
+  never joins the Yjs room, so it adds no presence ghost. An **ⓘ** button in
+  the title bar explains the window, and a **YORM log** at the bottom tails
+  what the engine triggered (projection commits, policy switches, suggestion
+  activity) since the page loaded — earlier history is deliberately skipped.
 - **Playwright e2e** ([tests/](tests/)): convergence across two browser
   contexts, policy semantics (explicit → rows only after Save; on-blur →
   rows after blur), unmapped-field convergence, inline/mass proposal review,
