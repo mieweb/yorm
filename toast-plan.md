@@ -24,6 +24,28 @@ No new dependencies. All state local to `ProjectionPanel`. No Zustand store chan
 - [x] **`RowsTable`** — `data-changed` on `<TableCell>` when the cell key is in `changedCells`
 - [x] **`projection-panel.scss`** — `@keyframes flash-update` (primary highlight → transparent) on `[data-changed]`, `1.4s ease-out forwards`; `prefers-reduced-motion` falls back to a static outline
 
+## Phase 3 — Show the actual SQL — committed `3fa6ee4`, `0aac05a`
+
+The toast said *that* rows changed; this makes it say *what ran*.
+
+- [x] **`packages/drizzle/src/sqlite.ts`** — optional `onStatement` forwarded to
+      better-sqlite3's `verbose` hook. That hook is the only place the
+      fully-expanded statement exists — values inlined, not `?` placeholders.
+- [x] **`examples/fhir-patient-contacts/src/setup.ts`** — pass `onStatement`
+      through `PocServerOptions` to the adapter
+- [x] **`examples/patient-collab-demo/src/server.ts`** — `recordStatement` keeps a
+      100-entry ring buffer, filtered to insert/update/delete against the
+      projection tables (`verbose` also fires for every read); served by
+      `GET /api/sql?since=N`
+- [x] **`api.ts` / `store.ts`** — `fetchSql(lastSqlSeq)` alongside the rows poll;
+      new statements are **buffered** until the poll that actually sees the rows
+      change, then flushed into `sqlStatements`
+- [x] **`ProjectionPanel.tsx`** — toast lists the first 4 statements plus a
+      `+N more` line; `TOAST_MS` raised to 6 000 ms to leave time to read them
+- [x] **`i18n.ts`** — `"rows.moreStatements": "+{count} more"`
+- [x] **`projection-panel.scss`** — toast moved into the panel flow. Floating at
+      the top-right it covered the very rows it was pointing at.
+
 ## Verification
 
 - [x] `pnpm --filter patient-collab-demo typecheck` passes with no new errors
@@ -42,6 +64,9 @@ Verified in the browser against the dev server, editing `Given names` / `Family 
 | flash clears | `[data-changed]` count 1 → 0 |
 | toast auto-dismiss | `.projection-toast--visible` detaches on its own |
 | first load | no toast on the initial snapshot |
+| SQL shown | 4 statements + `+10 more`, first one is the real `insert into "contact" (...) values ('p-demo', 'Peter', 'Chalmers-Reid', ...) on conflict ("contact_id") do update set ...` with the edited value inlined |
+| SQL on first load | empty — the seed's statements are history, not news |
+| toast overlap | none: the `contact` row and its flashing cell stay visible below the toast |
 
 Demo document restored to its seeded values afterwards
 (`Peter` / `Chalmers` / `James`).
