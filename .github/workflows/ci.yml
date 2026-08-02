@@ -22,6 +22,9 @@ jobs:
       # submodule (built dists, wired via vite aliases) — build them before
       # the steps that need them.
       - run: pnpm --filter patient-collab-demo esheet:build
+      # @mieweb/ui comes from the vendor/ui submodule the same way; its own
+      # preinstall inits that submodule's nested submodules.
+      - run: pnpm --filter patient-collab-demo ui:build
       # `pnpm run ci` — a bare `pnpm ci` hits pnpm's unimplemented built-in
       # instead of the package script.
       - run: pnpm run ci
