@@ -93,6 +93,9 @@ importers:
       '@hono/node-server':
         specifier: ^2.0.5
         version: 2.0.11(hono@4.12.30)
+      '@mieweb/ui':
+        specifier: link:../../vendor/ui
+        version: link:../../vendor/ui
       '@yorm/fhir':
         specifier: workspace:*
         version: link:../../packages/fhir

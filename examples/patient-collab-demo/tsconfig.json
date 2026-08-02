@@ -14,7 +14,6 @@
     "noEmit": true,
     "types": ["vite/client"],
     "paths": {
-      "@mieweb/ui": ["../../vendor/ui/dist/index.d.ts"],
       "@esheet/core": ["../../vendor/eSheet/packages/core/dist/index.d.ts"],
       "@esheet/renderer": ["../../vendor/eSheet/packages/renderer/dist/index.d.ts"],
       "@esheet/builder": ["../../vendor/eSheet/packages/builder/dist/index.d.ts"],

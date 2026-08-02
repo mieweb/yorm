@@ -305,9 +305,14 @@ git submodule update --init --recursive
 pnpm --filter patient-collab-demo ui:build
 ```
 
-The script runs `npm ci || npm install` plus `npm run build` (tsup + Tailwind)
-inside the submodule; the demo consumes `vendor/ui/dist` through Vite
-`resolve.alias` + tsconfig `paths`, exactly like eSheet. Drop the submodule
+The script runs `pnpm install --frozen-lockfile` plus `pnpm build` (tsup +
+Tailwind) inside the submodule — it has its own pnpm lockfile, so using npm
+there would resolve a different tree and leave a stray `package-lock.json`
+dirtying the submodule. The demo then depends on it as
+`"@mieweb/ui": "link:../../vendor/ui"`, so its own `exports` map resolves every
+entry (`@mieweb/ui`, `@mieweb/ui/styles.css`, `@mieweb/ui/brands/*.css`) with no
+Vite alias or tsconfig `paths` entry — unlike eSheet, which still needs aliases
+because its packages cross-reference unpublished versions. Drop the submodule
 and switch back to the registry once the PR ships.
 
 ## Form config (eSheet view)

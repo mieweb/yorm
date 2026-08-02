@@ -13,14 +13,8 @@ import { defineConfig } from "vite";
 const esheetDist = (pkg: string): string =>
   fileURLToPath(new URL(`../../vendor/eSheet/packages/${pkg}/dist/index.js`, import.meta.url));
 
-/**
- * @mieweb/ui likewise comes from the vendor/ui submodule (`pnpm ui:build`)
- * rather than the registry: the demo uses CollabStatus, which only exists on
- * the unreleased mieweb/ui#350 branch this submodule tracks. Its runtime deps
- * resolve from vendor/ui/node_modules.
- */
-const uiDist = (entry: string): string =>
-  fileURLToPath(new URL(`../../vendor/ui/dist/${entry}`, import.meta.url));
+// @mieweb/ui needs no alias: it is a `link:` dependency on the vendor/ui
+// submodule (`pnpm ui:build`), so its own exports map resolves every entry.
 
 // The eSheet packages declare their own React copy; dedupe pins everything to
 // this example's React 18 install so hooks share one dispatcher.
@@ -29,10 +23,6 @@ export default defineConfig({
   resolve: {
     dedupe: ["react", "react-dom"],
     alias: [
-      // The bare package resolves to the bundle; every subpath (styles.css,
-      // brands/*.css) maps straight onto the matching dist file.
-      { find: /^@mieweb\/ui$/, replacement: uiDist("index.js") },
-      { find: /^@mieweb\/ui\/(.+)$/, replacement: uiDist("$1") },
       { find: "@esheet/core", replacement: esheetDist("core") },
       { find: "@esheet/renderer", replacement: esheetDist("renderer") },
       { find: "@esheet/builder", replacement: esheetDist("builder") },

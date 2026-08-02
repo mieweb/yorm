@@ -9,13 +9,14 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.server.json",
     "start": "tsx src/server.ts",
     "esheet:build": "cd ../../vendor/eSheet && (npm ci || npm install) && npx nx run-many -t build -p @esheet/core @esheet/renderer @esheet/builder",
-    "ui:build": "cd ../../vendor/ui && (npm ci || npm install) && npm run build",
+    "ui:build": "cd ../../vendor/ui && pnpm install --frozen-lockfile && pnpm build",
     "e2e:server": "vite build && tsx src/server.ts",
     "test": "vitest run --passWithNoTests --root ../.. examples/patient-collab-demo",
     "test:e2e": "playwright test"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.5",
+    "@mieweb/ui": "link:../../vendor/ui",
     "@yorm/fhir": "workspace:*",
     "@yorm/yjs": "workspace:*",
     "example-fhir-patient-contacts": "workspace:*",
