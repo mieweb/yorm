@@ -33,6 +33,12 @@ export interface AdapterHarness {
 export interface AdapterFactory {
   /** Human-readable backend name, used in test titles. */
   name: string;
+  /**
+   * Dialect-flavoured version of {@link CONFORMANCE_SAMPLE_DDL}. Only the
+   * types may change — table and column names are part of the contract.
+   * Defaults to the SQLite DDL.
+   */
+  sampleDdl?: readonly string[];
   create(): Promise<AdapterHarness>;
 }
 
@@ -159,7 +165,7 @@ export function adapterConformanceTests(factory: AdapterFactory, api: Conformanc
   async function withHarness(fn: (harness: AdapterHarness) => Promise<void>): Promise<void> {
     const harness = await factory.create();
     try {
-      await harness.setup([...CONFORMANCE_SAMPLE_DDL]);
+      await harness.setup([...(factory.sampleDdl ?? CONFORMANCE_SAMPLE_DDL)]);
       await fn(harness);
     } finally {
       await harness.close();

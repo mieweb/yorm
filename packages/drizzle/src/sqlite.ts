@@ -82,22 +82,23 @@ export function createSqliteAdapter(options?: SqliteAdapterOptions): SqliteAdapt
   };
 }
 
-const PLANNED_BACKENDS = new Set(["pglite", "postgres", "mariadb", "mongodb"]);
+const PLANNED_BACKENDS = new Set(["pglite", "postgres", "mongodb"]);
 
 /**
  * Resolves the `YORM_DB` environment value to a backend name.
- * Only `"sqlite"` is wired up in the vertical slice; the M9 backends throw a
- * helpful error until they land.
+ * `"sqlite"` (vertical slice) and `"mysql"` (M9) are wired up; the remaining
+ * M9 backends throw a helpful error until they land.
  */
-export function resolveBackend(env?: string): "sqlite" {
+export function resolveBackend(env?: string): "sqlite" | "mysql" {
   const value = (env ?? "sqlite").toLowerCase();
   if (value === "sqlite") return "sqlite";
+  if (value === "mysql" || value === "mariadb") return "mysql";
   if (PLANNED_BACKENDS.has(value)) {
     throw new Error(
-      `YORM_DB="${value}" is planned in Milestone 9 and not yet supported; use YORM_DB=sqlite`,
+      `YORM_DB="${value}" is planned in Milestone 9 and not yet supported; use YORM_DB=sqlite or YORM_DB=mysql`,
     );
   }
   throw new Error(
-    `Unknown YORM_DB value "${value}"; supported: sqlite (pglite, postgres, mariadb, mongodb planned in M9)`,
+    `Unknown YORM_DB value "${value}"; supported: sqlite, mysql (pglite, postgres, mongodb planned in M9)`,
   );
 }

@@ -22,16 +22,21 @@
     "drizzle-orm": "^0.45.2"
   },
   "peerDependencies": {
-    "better-sqlite3": ">=11"
+    "better-sqlite3": ">=11",
+    "mysql2": ">=3"
   },
   "peerDependenciesMeta": {
     "better-sqlite3": {
+      "optional": true
+    },
+    "mysql2": {
       "optional": true
     }
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
     "better-sqlite3": "^11.5.0",
+    "mysql2": "^3.11.0",
     "typescript": "^5.6.3"
   }
 }

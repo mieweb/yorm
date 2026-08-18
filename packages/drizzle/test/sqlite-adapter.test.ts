@@ -179,8 +179,13 @@ describe("resolveBackend", () => {
     expect(resolveBackend("SQLite")).toBe("sqlite");
   });
 
+  it("resolves the mysql backend, mariadb included", () => {
+    expect(resolveBackend("mysql")).toBe("mysql");
+    expect(resolveBackend("MariaDB")).toBe("mysql");
+  });
+
   it("names Milestone 9 for planned backends", () => {
-    for (const backend of ["pglite", "postgres", "mariadb", "mongodb"]) {
+    for (const backend of ["pglite", "postgres", "mongodb"]) {
       expect(() => resolveBackend(backend)).toThrow(/Milestone 9/);
     }
   });
