@@ -49,10 +49,10 @@ importers:
     dependencies:
       '@hono/node-server':
         specifier: ^2.0.5
-        version: 2.0.11(hono@4.12.30)
+        version: 2.0.11(hono@4.13.11)
       '@hono/node-ws':
         specifier: ^1.0.4
-        version: 1.3.1(@hono/node-server@2.0.11(hono@4.12.30))(hono@4.12.30)
+        version: 1.3.1(@hono/node-server@2.0.11(hono@4.13.11))(hono@4.13.11)
       '@yorm/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -75,8 +75,8 @@ importers:
         specifier: ^0.45.2
         version: 0.45.2(@types/better-sqlite3@7.6.13)(better-sqlite3@11.10.0)
       hono:
-        specifier: ^4.6.11
-        version: 4.12.30
+        specifier: ^4.13.11
+        version: 4.13.11
       lib0:
         specifier: ^0.2.98
         version: 0.2.117
@@ -101,7 +101,7 @@ importers:
     dependencies:
       '@hono/node-server':
         specifier: ^2.0.5
-        version: 2.0.11(hono@4.12.30)
+        version: 2.0.11(hono@4.13.11)
       '@mieweb/ui':
         specifier: link:../../vendor/ui
         version: link:../../vendor/ui
@@ -118,8 +118,8 @@ importers:
         specifier: workspace:*
         version: link:../fhir-patient-contacts
       hono:
-        specifier: ^4.6.11
-        version: 4.12.30
+        specifier: ^4.13.11
+        version: 4.13.11
       js-yaml:
         specifier: ^4.1.0
         version: 4.3.0
@@ -299,13 +299,13 @@ importers:
     devDependencies:
       '@hono/node-server':
         specifier: ^2.0.5
-        version: 2.0.11(hono@4.12.30)
+        version: 2.0.11(hono@4.13.11)
       '@hono/node-ws':
         specifier: ^1.0.4
-        version: 1.3.1(@hono/node-server@2.0.11(hono@4.12.30))(hono@4.12.30)
+        version: 1.3.1(@hono/node-server@2.0.11(hono@4.13.11))(hono@4.13.11)
       hono:
-        specifier: ^4.6.11
-        version: 4.12.30
+        specifier: ^4.13.11
+        version: 4.13.11
       lib0:
         specifier: ^0.2.98
         version: 0.2.117
@@ -1848,8 +1848,8 @@ packages:
   highlight.js@10.7.3:
     resolution: {integrity: sha512-tzcUFauisWKNHaRkN4Wjl/ZA07gENAjFl3J/c480dprkGTg5EQstgaNFqBfUqCq54kZRIEcreTsAgF/m2quD7A==}
 
-  hono@4.12.30:
-    resolution: {integrity: sha512-emn+JoJjrN9YTpRDS5it/UI2SO9BAE37T6I3d963RxcZ81G9A4pr2SZTEiiaiKbzx+NKRg5BZ89fCL7gCJCUog==}
+  hono@4.13.11:
+    resolution: {integrity: sha512-/SMX/RQNJn7oNmFwH6DtwDqcrzZU2otm1FD6OJe2cWF6cfy/F8hq0XVBv7xW3FTJshRQwuBnXHDq2kNsdZnshg==}
     engines: {node: '>=16.9.0'}
 
   http-errors@2.0.1:
@@ -3183,14 +3183,14 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@hono/node-server@2.0.11(hono@4.12.30)':
+  '@hono/node-server@2.0.11(hono@4.13.11)':
     dependencies:
-      hono: 4.12.30
+      hono: 4.13.11
 
-  '@hono/node-ws@1.3.1(@hono/node-server@2.0.11(hono@4.12.30))(hono@4.12.30)':
+  '@hono/node-ws@1.3.1(@hono/node-server@2.0.11(hono@4.13.11))(hono@4.13.11)':
     dependencies:
-      '@hono/node-server': 2.0.11(hono@4.12.30)
-      hono: 4.12.30
+      '@hono/node-server': 2.0.11(hono@4.13.11)
+      hono: 4.13.11
       ws: 8.21.1
     transitivePeerDependencies:
       - bufferutil
@@ -4241,7 +4241,7 @@ snapshots:
 
   highlight.js@10.7.3: {}
 
-  hono@4.12.30: {}
+  hono@4.13.11: {}
 
   http-errors@2.0.1:
     dependencies:
