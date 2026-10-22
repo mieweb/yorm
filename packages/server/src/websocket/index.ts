@@ -331,6 +331,22 @@ export function createWebSocketEndpoint(
                   return;
                 }
               }
+              if (options.onValidateSyncUpdate) {
+                const payload = updatePayloadOf(data);
+                if (payload !== null) {
+                  const scratch = new Y.Doc();
+                  try {
+                    Y.applyUpdate(scratch, Y.encodeStateAsUpdate(room.session.doc));
+                    Y.applyUpdate(scratch, payload);
+                    if (!options.onValidateSyncUpdate(request, { type, id }, room.session.doc, scratch)) {
+                      socket.close(1008, "document update refused");
+                      return;
+                    }
+                  } finally {
+                    scratch.destroy();
+                  }
+                }
+              }
               const encoder = encoding.createEncoder();
               encoding.writeVarUint(encoder, MESSAGE_SYNC);
               // Applying the message mutates the doc; fan-out is synchronous,

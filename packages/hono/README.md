@@ -54,7 +54,7 @@ interface HonoYormOptions extends YormServerOptions {
 ```
 
 Everything inherited from `YormServerOptions` (`onAuthorize`,
-`onAuthorizeWrite`, `rolePolicies`, `defaultPolicy`, `maxLagMs`) is described
-in [@yorm/server → Options](../server/README.md#options). The hooks receive a
-neutral `YormRequest`, not a Hono `Context`, so authorization code ports
-unchanged to the Fastify and Express adapters.
+`onAuthorizeWrite`, `onValidateSyncUpdate`, `rolePolicies`, `defaultPolicy`,
+`maxLagMs`) is described in [@yorm/server → Options](../server/README.md#options).
+The hooks receive a neutral `YormRequest`, not a Hono `Context`, so authorization
+code ports unchanged to the Fastify and Express adapters.

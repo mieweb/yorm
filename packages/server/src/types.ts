@@ -7,6 +7,7 @@
  * `@yorm/fastify`, and `@yorm/express` be thin wrappers rather than forks.
  */
 import type { ProjectionTriggerPolicy, RolePolicy } from "@yorm/yjs";
+import type * as Y from "yjs";
 
 /** Which subtree of the document a write targets (PLAN.md M7). */
 export type WriteScope = "canonical" | "proposals";
@@ -86,6 +87,18 @@ export interface YormWebSocketEndpoint {
 }
 
 export interface YormServerOptions {
+  /**
+   * Synchronous pre-apply guard for raw canonical WebSocket updates, including
+   * initial SyncStep2 uploads. `after` is a disposable scratch document; never
+   * mutate `before`. False refuses the entire update and closes with 1008.
+   * Lens writes use their role policy; HTTP writes use codecs/authorization.
+   */
+  onValidateSyncUpdate?: (
+    request: YormRequest,
+    docRef: DocRef,
+    before: Y.Doc,
+    after: Y.Doc,
+  ) => boolean;
   /**
    * Authorization hook, run before every HTTP route and WebSocket upgrade.
    * Returning `false` yields 403 on HTTP and close code 1008 on WebSocket.

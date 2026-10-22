@@ -19,7 +19,7 @@ graph TB
 
   subgraph Transport["@yorm/server — REST + WebSocket protocol<br/>mounted by @yorm/hono, @yorm/fastify or @yorm/express"]
     HttpApi["HTTP API<br/>GET/PUT/PATCH /docs, projection-state,<br/>flush, proposals routes"]
-    WsEndpoint["WS /ws/:type/:id<br/>y-protocols sync + awareness,<br/>role guard (proposer vs editor)"]
+    WsEndpoint["WS /ws/:type/:id<br/>y-protocols sync + awareness,<br/>role guard + optional pre-apply validation"]
   end
 
   subgraph Engine["@yorm/yjs — canonical document runtime"]

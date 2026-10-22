@@ -134,6 +134,18 @@ Query params:
   policies” below. (`?mode=` names HOW a connection writes; `?role=` names
   WHO is connecting.)
 
+### Pre-apply validation
+
+For raw (non-lens) sockets, optional synchronous
+`onValidateSyncUpdate(request, docRef, before, after)` runs before applying a
+document update. `before` is the live document (do not mutate it); `after` is a
+disposable scratch document containing the proposed state. Returning false
+refuses the entire payload with close code 1008, without persistence or fan-out.
+The hook covers both Update and SyncStep2/offline uploads, but not awareness or
+SyncStep1. Lens writes continue through their role policy; HTTP writes still
+require appropriate codec/route authorization. The scratch replay adds
+per-update work only when the hook is configured.
+
 ### Write modes & the canonical-write guard (PLAN.md M7)
 
 A WebSocket connection's write scope is chosen at upgrade time: `?mode=proposer`
@@ -217,6 +229,12 @@ interface YormServerOptions {
     docRef: DocRef,
     scope: "canonical" | "proposals",
   ) => boolean | Promise<boolean>; // per-subtree write rules (PLAN.md M7)
+  onValidateSyncUpdate?: (
+    request: YormRequest,
+    docRef: { type: string; id: string },
+    before: Y.Doc,
+    after: Y.Doc,
+  ) => boolean; // raw WebSocket updates, before persistence or broadcast
   rolePolicies?: RolePolicy[]; // policy-lens roles (role-security POC), see above
   defaultPolicy?: ProjectionTriggerPolicy; // applied when a session is opened
   maxLagMs?: number; // server-level safety flush cap for deferred policies

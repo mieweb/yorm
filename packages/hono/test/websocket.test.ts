@@ -57,6 +57,9 @@ describe("@yorm/hono WebSocket route", () => {
         // Proposer-mode connections may only write the proposals subtree.
         onAuthorizeWrite: (ctx, _docRef, scope) =>
           (ctx.query("mode") ?? "editor") === "proposer" ? scope === "proposals" : true,
+        onValidateSyncUpdate: (ctx, _ref, before, after) =>
+          ctx.query("guard") !== "yes" ||
+          before.getMap("resource").get("locked") === after.getMap("resource").get("locked"),
       }),
     );
     await new Promise<void>((resolve) => {
@@ -103,6 +106,39 @@ describe("@yorm/hono WebSocket route", () => {
   it("a late joiner receives existing state via sync", async () => {
     const late = connect("/yorm/ws/Patient/p1");
     await until(() => late.doc.getMap("resource").get("name") === "Ada", "late joiner caught up");
+  });
+
+  it("validates raw updates before persistence or fan-out without blocking ordinary edits", async () => {
+    const client = connect("/yorm/ws/Patient/guarded?guard=yes");
+    const observer = connect("/yorm/ws/Patient/guarded?guard=yes");
+    await until(() => client.synced && observer.synced, "guarded clients synced");
+    client.doc.getMap("resource").set("name", "Allowed");
+    await until(() => observer.doc.getMap("resource").get("name") === "Allowed", "ordinary edit accepted");
+    client.doc.transact(() => {
+      client.doc.getMap("resource").set("name", "Rejected");
+      client.doc.getMap("resource").set("locked", "Changed");
+    });
+    await until(() => client.closed !== null, "guard refused mixed update");
+    expect(client.closed).toEqual({ code: 1008, reason: "document update refused" });
+    expect(observer.doc.getMap("resource").toJSON()).toEqual({ name: "Allowed" });
+    const response = await app.request("/yorm/docs/Patient/guarded");
+    expect((await response.json()).object).toEqual({ name: "Allowed" });
+  });
+
+  it("also validates offline state uploaded through SyncStep2", async () => {
+    const client = connect("/yorm/ws/Patient/offline-guard?guard=yes");
+    // Before open, seed an offline document without sending an Update frame.
+    Y.applyUpdate(client.doc, (() => {
+      const offline = new Y.Doc();
+      try {
+        offline.getMap("resource").set("locked", "Offline change");
+        return Y.encodeStateAsUpdate(offline);
+      } finally { offline.destroy(); }
+    })(), client);
+    await until(() => client.closed !== null, "offline upload refused");
+    expect(client.closed).toEqual({ code: 1008, reason: "document update refused" });
+    const response = await app.request("/yorm/docs/Patient/offline-guard");
+    expect(response.status).toBe(404);
   });
 
   it("unauthorized sockets are closed with 1008", async () => {
